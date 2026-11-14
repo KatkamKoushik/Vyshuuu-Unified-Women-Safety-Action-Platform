@@ -7,6 +7,7 @@ import {
   VERIFIED_AUTHORITIES,
   DRAFTSMAN_DISCLAIMER,
 } from '@walking-companion/core';
+import { dynamicGrievanceAnalysis } from '../services/geminiClient.js';
 
 interface IntakeRequestBody {
   category: string;
@@ -67,20 +68,30 @@ export async function registerActRoutes(fastify: FastifyInstance) {
       });
     }
 
+    // Connect live Gemini analysis when GEMINI_API_KEY is present, with deterministic fallback
+    const dynamicAnalysis = await dynamicGrievanceAnalysis(statement, undefined, process.env.GEMINI_API_KEY);
+
     const authorityMatch = matchAuthorityForGrievance({
-      category,
+      category: dynamicAnalysis.category || category,
       statement,
       priorReportIgnored: Boolean(priorReportIgnored),
     });
 
-    const clarifyingQuestions = generateClarifyingQuestions(category, statement);
+    const clarifyingQuestions = dynamicAnalysis.clarifyingQuestions && dynamicAnalysis.clarifyingQuestions.length > 0
+      ? dynamicAnalysis.clarifyingQuestions
+      : generateClarifyingQuestions(category, statement);
 
     return reply.send({
       ok: true,
-      category,
+      category: dynamicAnalysis.category || category,
       institutionName: institutionName || null,
       authorityMatch,
       clarifyingQuestions,
+      aiAnalysis: {
+        isAiGenerated: dynamicAnalysis.isAiGenerated,
+        engine: dynamicAnalysis.isAiGenerated ? 'gemini-2.5-flash' : 'deterministic-fallback',
+        reason: dynamicAnalysis.reason,
+      },
       disclaimer: DRAFTSMAN_DISCLAIMER,
     });
   };

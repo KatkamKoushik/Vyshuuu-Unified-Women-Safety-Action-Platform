@@ -182,7 +182,7 @@ export function composeFormalGrievance({
   category,
   incidentDate,
   rawNarrative,
-  priorSteps = 'Prior oral and written intimations provided to hostel authorities without effective remediation.',
+  priorSteps = '',
   impact = 'Substantial risk to health, safety, and academic well-being.',
   reliefRequested = 'Immediate inspection, certified remediation, and institutional compliance.',
   evidenceItems = [],
@@ -191,22 +191,29 @@ export function composeFormalGrievance({
     throw new Error('institutionName, hostelOrLocation, and rawNarrative are mandatory for grievance composition');
   }
 
+  const hasPriorSteps = Boolean(priorSteps && priorSteps.trim().length > 0);
+
   // 1. Match Authority
   const routeMatch = matchAuthorityForGrievance({
     category,
-    statement: `${rawNarrative} ${priorSteps}`,
-    priorReportIgnored: Boolean(priorSteps && priorSteps.length > 5),
+    statement: `${rawNarrative} ${priorSteps || ''}`,
+    priorReportIgnored: hasPriorSteps,
   });
   const authority = routeMatch.primaryAuthority;
 
   // 2. Compute evidence digests if buffer provided and digest not pre-set
   const processedEvidence = evidenceItems.map((item, idx) => {
     let digest = item.digestHex;
+    let digestType = 'FILE_CONTENT_SHA256';
     if (!digest && item.buffer) {
       digest = calculateEvidenceSha256(item.buffer);
+      digestType = 'FILE_CONTENT_SHA256';
     } else if (!digest) {
-      // Deterministic synthetic digest based on metadata
+      // Deterministic digest based on metadata - clearly labeled as metadata checksum
       digest = calculateEvidenceSha256(`${item.name}:${item.sizeBytes || 0}:${item.capturedAt || incidentDate}`);
+      digestType = 'METADATA_REFERENCE_SHA256';
+    } else {
+      digestType = item.digestType || 'FILE_CONTENT_SHA256';
     }
     return {
       index: idx + 1,
@@ -215,6 +222,7 @@ export function composeFormalGrievance({
       sizeBytes: item.sizeBytes || 0,
       capturedAt: item.capturedAt || incidentDate,
       digestHex: digest,
+      digestType,
     };
   });
 
@@ -264,11 +272,25 @@ export function composeFormalGrievance({
     `   > ${rawNarrative.trim().replace(/\n/g, '\n   > ')}`,
     `3. The occurrence has caused tangible injury and prejudice, specifically: ${impact}`,
     '',
-    `### SECTION 2: PRIOR INTERNAL REPORTING & INSTITUTIONAL INACTION`,
-    `1. Prior to this formal representation, administrative notice was served internally:`,
-    `   > ${priorSteps.trim().replace(/\n/g, '\n   > ')}`,
-    `2. Despite notice, responsible authorities failed to remediate the hazard within reasonable time, necessitating this statutory escalation.`,
-    '',
+  ];
+
+  if (hasPriorSteps) {
+    formalLines.push(
+      `### SECTION 2: PRIOR INTERNAL REPORTING & INSTITUTIONAL INACTION`,
+      `1. Prior to this formal representation, administrative notice was served internally:`,
+      `   > ${priorSteps.trim().replace(/\n/g, '\n   > ')}`,
+      `2. Despite notice, responsible authorities failed to remediate the hazard within reasonable time, necessitating this statutory escalation.`,
+      ''
+    );
+  } else {
+    formalLines.push(
+      `### SECTION 2: PROCEDURAL POSTURE & INITIAL FORMAL NOTICE`,
+      `1. This representation constitutes the first formal written submission tendered contemporaneously for administrative record and immediate corrective intervention.`,
+      ''
+    );
+  }
+
+  formalLines.push(
     `### SECTION 3: LEGAL & STATUTORY FRAMEWORK`,
     `The failure to maintain habitable and safe living quarters violates established safety norms and statutory mandates:`,
     `- **Mandate:** ${statutoryCitation}`,
@@ -278,22 +300,23 @@ export function composeFormalGrievance({
     `The Complainant respectfully requests the following time-bound remedies:`,
     `1. **Immediate Inspection:** Conduct an on-site physical inspection of ${hostelOrLocation}.`,
     `2. **Remedial Action:** ${reliefRequested}`,
-    `3. **Written Report:** Furnish a written action-taken report detailing corrective hygiene, pest control, or security interventions.`,
+    `3. **Written Report:** Furnish a written action-taken report detailing corrective interventions.`,
     `4. **Protection from Retaliation:** Ensure the complainant suffers no academic, administrative, or residential prejudice.`,
     '',
     `### SECTION 5: ANNEXURES & CRYPTOGRAPHIC EVIDENCE DIGEST (SHA-256)`,
-    `The following contemporaneous evidence is submitted in support of this representation. To ensure tamper-evidence, each item is indexed with its cryptographic SHA-256 checksum:`,
+    `The following contemporaneous evidence is submitted in support of this representation. To ensure tamper-evidence, each item is indexed with its cryptographic SHA-256 checksum and scope disclosure:`,
     '',
-    `| Annexure | Item Name | Captured Timestamp | Format | SHA-256 Digest (64 hex characters) |`,
-    `| :--- | :--- | :--- | :--- | :--- |`,
-  ];
+    `| Annexure | Item Name | Captured Timestamp | Format | SHA-256 Digest (64 hex characters) | Digest Verification Scope |`,
+    `| :--- | :--- | :--- | :--- | :--- | :--- |`
+  );
 
   if (processedEvidence.length === 0) {
-    formalLines.push(`| Annexure A | Statement of Fact (Self-attested) | ${incidentDate} | text/markdown | ${calculateEvidenceSha256(rawNarrative)} |`);
+    formalLines.push(`| Annexure A | Statement of Fact (Self-attested) | ${incidentDate} | text/markdown | \`${calculateEvidenceSha256(rawNarrative)}\` | Narrative Content Hash |`);
   } else {
     for (const ev of processedEvidence) {
+      const scopeLabel = ev.digestType === 'FILE_CONTENT_SHA256' ? 'File Content Byte Hash' : 'Metadata Checksum';
       formalLines.push(
-        `| Annexure ${String.fromCharCode(64 + ev.index)} | ${ev.name} | ${ev.capturedAt} | ${ev.type} | \`${ev.digestHex}\` |`
+        `| Annexure ${String.fromCharCode(64 + ev.index)} | ${ev.name} | ${ev.capturedAt} | ${ev.type} | \`${ev.digestHex}\` | ${scopeLabel} |`
       );
     }
   }

@@ -177,6 +177,48 @@ describe('grievanceDraftsman', () => {
         /mandatory for grievance composition/
       );
     });
+
+    it('does not fabricate prior notice assertions when user reports none (Finding 5 fix)', () => {
+      const result = composeFormalGrievance({
+        institutionName: 'Apex University',
+        hostelOrLocation: 'Block B Hostel',
+        rawNarrative: 'Sudden ceiling plaster collapse in common area.',
+        category: 'HOSTEL_MAINTENANCE',
+        incidentDate: '2026-11-14',
+        priorSteps: '', // User did not assert prior complaints
+      });
+
+      assert.ok(!result.formalDocument.includes('administrative notice was served internally'));
+      assert.ok(result.formalDocument.includes('first formal written submission tendered contemporaneously'));
+    });
+
+    it('transparently distinguishes file content hash from metadata checksum (Finding 4 fix)', () => {
+      const result = composeFormalGrievance({
+        institutionName: 'Apex University',
+        hostelOrLocation: 'Mess Hall',
+        rawNarrative: 'Foreign matter found in served meal.',
+        category: 'MESS_FOOD',
+        incidentDate: '2026-11-14',
+        evidenceItems: [
+          {
+            name: 'photo_evidence.jpg',
+            type: 'image/jpeg',
+            buffer: Buffer.from('actual_photo_binary_data_123'),
+          },
+          {
+            name: 'verbal_memo_reference.txt',
+            type: 'text/plain',
+            sizeBytes: 120,
+            // no buffer - metadata checksum
+          },
+        ],
+      });
+
+      assert.equal(result.evidenceDigest[0].digestType, 'FILE_CONTENT_SHA256');
+      assert.equal(result.evidenceDigest[1].digestType, 'METADATA_REFERENCE_SHA256');
+      assert.ok(result.formalDocument.includes('File Content Byte Hash'));
+      assert.ok(result.formalDocument.includes('Metadata Checksum'));
+    });
   });
 });
 

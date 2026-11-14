@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { getSecuritySetting, setSecuritySetting } from '../../services/storageService';
+import { hashSha256 } from '@walking-companion/core';
 
 interface VaultSecurityModalProps {
   visible: boolean;
@@ -17,47 +19,121 @@ interface VaultSecurityModalProps {
   title?: string;
 }
 
+const PIN_SALT = 'vyshuuu_vault_v1_salt_9f8e7d';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 30;
+
 export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
   visible,
   onSuccess,
   onCancel,
-  mode = 'verify',
+  mode: initialMode = 'verify',
   title,
 }) => {
+  const [activeMode, setActiveMode] = useState<'verify' | 'setup'>(initialMode);
   const [pin, setPin] = useState('');
-  const [storedPin, setStoredPin] = useState('');
+  const [storedPinHash, setStoredPinHash] = useState<string | null>(null);
   const [setupStep, setSetupStep] = useState<'enter' | 'confirm'>('enter');
   const [firstPin, setFirstPin] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
 
+  const timerRef = useRef<any>(null);
+
+  // Compute salted SHA-256 hash of PIN
+  const hashPin = (rawPin: string): string => {
+    return hashSha256(`${PIN_SALT}:${rawPin}`);
+  };
+
+  // Read stored PIN hash from secure store or SQLite security settings
   useEffect(() => {
     if (visible) {
       setPin('');
       setFirstPin('');
       setSetupStep('enter');
-      getSecuritySetting('vault_pin', '').then((val) => {
-        setStoredPin(val ? val.trim() : '');
-      });
+
+      const loadCredential = async () => {
+        try {
+          // 1. Try platform-backed hardware keystore (SecureStore)
+          let hash: string | null = null;
+          try {
+            hash = await SecureStore.getItemAsync('vault_pin_hash');
+          } catch {
+            hash = null;
+          }
+
+          // 2. Fall back to on-device SQLite security settings
+          if (!hash) {
+            const rawVal = await getSecuritySetting('vault_pin_hash', '');
+            hash = rawVal ? rawVal.trim() : null;
+          }
+
+          setStoredPinHash(hash);
+
+          // If in verify mode but user has never enrolled a PIN, mandate enrollment
+          if (initialMode === 'verify' && !hash) {
+            setActiveMode('setup');
+          } else {
+            setActiveMode(initialMode);
+          }
+        } catch {
+          setStoredPinHash(null);
+          setActiveMode('setup');
+        }
+      };
+
+      loadCredential();
     }
-  }, [visible]);
+  }, [visible, initialMode]);
+
+  // Lockout countdown timer
+  useEffect(() => {
+    if (lockoutTimer > 0) {
+      timerRef.current = setTimeout(() => {
+        setLockoutTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [lockoutTimer]);
 
   const handleDigit = (digit: string) => {
+    if (lockoutTimer > 0) return;
     if (pin.length >= 4) return;
     const nextPin = pin + digit;
     setPin(nextPin);
 
     if (nextPin.length === 4) {
-      setTimeout(() => {
-        if (mode === 'setup') {
+      setTimeout(async () => {
+        if (activeMode === 'setup') {
           if (setupStep === 'enter') {
             setFirstPin(nextPin);
             setPin('');
             setSetupStep('confirm');
           } else {
             if (nextPin === firstPin) {
-              setSecuritySetting('vault_pin', nextPin).then(() => {
-                Alert.alert('Vault Secured', 'Your 4-digit vault security PIN has been saved on-device.');
+              const newHash = hashPin(nextPin);
+              try {
+                // Save to SecureStore hardware-backed keystore
+                try {
+                  await SecureStore.setItemAsync('vault_pin_hash', newHash);
+                } catch {
+                  // Continue to SQLite fallback
+                }
+                // Save to SQLite security settings
+                await setSecuritySetting('vault_pin_hash', newHash);
+
+                Alert.alert(
+                  'Vault Enrolled & Secured',
+                  'Your 4-digit vault PIN has been cryptographically salted and saved on this device.'
+                );
+                setPin('');
+                setFirstPin('');
                 onSuccess();
-              });
+              } catch {
+                Alert.alert('Storage Error', 'Could not save vault credentials to device.');
+              }
             } else {
               Alert.alert('PIN Mismatch', 'The PINs you entered do not match. Please try again.');
               setPin('');
@@ -66,14 +142,30 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
             }
           }
         } else {
-          // Verification mode
-          // If no stored PIN, default allows entry or 1234
-          if (!storedPin || nextPin === storedPin || nextPin === '1234') {
+          // Verification mode: strictly check salted hash against stored credential
+          // Zero universal backdoor PINs (1234 strictly removed)
+          const attemptHash = hashPin(nextPin);
+          if (storedPinHash && attemptHash === storedPinHash) {
             setPin('');
+            setFailedAttempts(0);
             onSuccess();
           } else {
-            Alert.alert('Incorrect PIN', 'The entered vault PIN is incorrect.');
+            const nextFail = failedAttempts + 1;
+            setFailedAttempts(nextFail);
             setPin('');
+
+            if (nextFail >= MAX_ATTEMPTS) {
+              setLockoutTimer(LOCKOUT_SECONDS);
+              Alert.alert(
+                'Access Locked',
+                `Too many failed attempts. Vault keypad locked for ${LOCKOUT_SECONDS} seconds for brute-force defense.`
+              );
+            } else {
+              Alert.alert(
+                'Incorrect PIN',
+                `The entered vault PIN is incorrect. ${MAX_ATTEMPTS - nextFail} attempts remaining before temporary lockout.`
+              );
+            }
           }
         }
       }, 150);
@@ -81,6 +173,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
   };
 
   const handleDelete = () => {
+    if (lockoutTimer > 0) return;
     if (pin.length > 0) {
       setPin(pin.slice(0, -1));
     }
@@ -88,17 +181,22 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
 
   const getHeading = () => {
     if (title) return title;
-    if (mode === 'setup') {
-      return setupStep === 'enter' ? 'Set 4-Digit Vault PIN' : 'Confirm 4-Digit Vault PIN';
+    if (activeMode === 'setup') {
+      return setupStep === 'enter' ? 'Enroll 4-Digit Vault PIN' : 'Confirm Vault PIN';
     }
     return 'Unlock Protected Vault';
   };
 
   const getSubheading = () => {
-    if (mode === 'setup') {
-      return 'Create a PIN to secure your incident logs and grievance petitions.';
+    if (lockoutTimer > 0) {
+      return `Keypad locked for brute-force defense: ${lockoutTimer}s remaining.`;
     }
-    return storedPin ? 'Enter your 4-digit PIN to access private vault data.' : 'Default PIN is 1234 or configure in Settings.';
+    if (activeMode === 'setup') {
+      return setupStep === 'enter'
+        ? 'Create a 4-digit PIN to secure your incident logs and legal petitions.'
+        : 'Re-enter your 4-digit PIN to verify.';
+    }
+    return 'Enter your 4-digit PIN to access private incident & petition vault.';
   };
 
   const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
@@ -107,9 +205,11 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <Text style={styles.icon}>🔒</Text>
+          <Text style={styles.icon}>{lockoutTimer > 0 ? '⏳' : '🔒'}</Text>
           <Text style={styles.heading}>{getHeading()}</Text>
-          <Text style={styles.subheading}>{getSubheading()}</Text>
+          <Text style={[styles.subheading, lockoutTimer > 0 && styles.lockoutText]}>
+            {getSubheading()}
+          </Text>
 
           {/* 4 PIN Dots */}
           <View style={styles.dotsRow}>
@@ -119,6 +219,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
                 style={[
                   styles.dot,
                   pin.length > idx && styles.dotFilled,
+                  lockoutTimer > 0 && styles.dotDisabled,
                 ]}
               />
             ))}
@@ -134,16 +235,35 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
               return (
                 <TouchableOpacity
                   key={`key_${idx}`}
-                  style={[styles.keyBtn, isDelete && styles.keyDelete]}
+                  style={[
+                    styles.keyBtn,
+                    isDelete && styles.keyDelete,
+                    lockoutTimer > 0 && styles.keyBtnDisabled,
+                  ]}
                   onPress={() => (isDelete ? handleDelete() : handleDigit(item))}
+                  disabled={lockoutTimer > 0}
                   activeOpacity={0.6}
                 >
-                  <Text style={[styles.keyText, isDelete && styles.keyDeleteText]}>
+                  <Text
+                    style={[
+                      styles.keyText,
+                      isDelete && styles.keyDeleteText,
+                      lockoutTimer > 0 && styles.keyTextDisabled,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          {/* Storage Architecture Disclosure */}
+          <View style={styles.disclosureCard}>
+            <Text style={styles.disclosureText}>
+              🛡️ Hardware Security Notice: PIN gates on-device UI display. Enable device OS lockscreen
+              encryption in system settings for hardware-level storage protection.
+            </Text>
           </View>
 
           {/* Cancel Button */}
@@ -159,7 +279,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -191,10 +311,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
+  lockoutText: {
+    color: '#EF4444',
+    fontWeight: '700',
+  },
   dotsRow: {
     flexDirection: 'row',
     gap: 16,
-    marginVertical: 24,
+    marginVertical: 20,
   },
   dot: {
     width: 14,
@@ -208,12 +332,16 @@ const styles = StyleSheet.create({
     borderColor: '#38BDF8',
     backgroundColor: '#38BDF8',
   },
+  dotDisabled: {
+    borderColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
   keypad: {
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   keyBtn: {
     width: '30%',
@@ -225,6 +353,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
+  keyBtnDisabled: {
+    opacity: 0.3,
+  },
   keyEmpty: {
     width: '30%',
     aspectRatio: 1.3,
@@ -234,6 +365,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
+  keyTextDisabled: {
+    color: '#64748B',
+  },
   keyDelete: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderColor: 'rgba(239, 68, 68, 0.2)',
@@ -242,8 +376,22 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 18,
   },
+  disclosureCard: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  disclosureText: {
+    color: '#94A3B8',
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
   cancelBtn: {
-    marginTop: 20,
+    marginTop: 14,
     paddingVertical: 8,
     paddingHorizontal: 20,
   },
@@ -253,4 +401,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

@@ -237,12 +237,13 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
           <View style={styles.panicCard}>
             <View style={styles.panicBadgeRow}>
               <View style={styles.pulseDot} />
-              <Text style={styles.panicBadgeText}>1-TAP SOS BROADCAST</Text>
+              <Text style={styles.panicBadgeText}>EMERGENCY SMS COMPOSER</Text>
             </View>
 
-            <Text style={styles.panicHeading}>Broadcast Live Location to Trusted Contacts</Text>
+            <Text style={styles.panicHeading}>Draft Live GPS SOS to Trusted Contacts</Text>
             <Text style={styles.panicSubtext}>
-              Generates an immediate emergency SMS containing your live Google Maps coordinates and timestamp to all saved contacts.
+              Pre-fills an emergency SMS with your live Google Maps coordinates and GPS accuracy radius for all trusted contacts.
+              Android and iOS security sandboxes require you to tap 'Send' in your Messages app.
             </Text>
 
             <TouchableOpacity
@@ -251,14 +252,14 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
               disabled={isSendingSos}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel="Send SOS SMS with live coordinates to trusted contacts"
+              accessibilityLabel="Open SMS composer with live coordinates for trusted contacts"
             >
               {isSendingSos ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.panicBtnInner}>
-                  <Text style={styles.panicBtnIcon}>📡</Text>
-                  <Text style={styles.panicBtnText}>SEND SOS WITH LIVE GPS</Text>
+                  <Text style={styles.panicBtnIcon}>💬</Text>
+                  <Text style={styles.panicBtnText}>OPEN SOS IN MESSAGES APP</Text>
                 </View>
               )}
             </TouchableOpacity>

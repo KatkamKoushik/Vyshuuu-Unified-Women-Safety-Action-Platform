@@ -1,0 +1,62 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { hashSha256, pureJsSha256 } from './cryptoUtils.js';
+
+describe('Cryptographic Integrity & NIST FIPS 180-4 SHA-256 Compliance', () => {
+  const nistVectors = [
+    {
+      input: '',
+      expected: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    },
+    {
+      input: 'abc',
+      expected: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    },
+    {
+      input: 'hello',
+      expected: '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+    },
+    {
+      input: 'The quick brown fox jumps over the lazy dog',
+      expected: 'd7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592',
+    },
+  ];
+
+  it('matches standard NIST test vectors using hashSha256 (Node crypto path)', () => {
+    for (const { input, expected } of nistVectors) {
+      const result = hashSha256(input);
+      assert.equal(result, expected, `Mismatch for input "${input}"`);
+      assert.equal(result.length, 64);
+    }
+  });
+
+  it('matches standard NIST test vectors using pureJsSha256 (React Native / Hermes fallback)', () => {
+    for (const { input, expected } of nistVectors) {
+      const bytes = new TextEncoder().encode(input);
+      const result = pureJsSha256(bytes);
+      assert.equal(result, expected, `Pure JS mismatch for input "${input}"`);
+      assert.equal(result.length, 64);
+    }
+  });
+
+  it('pureJsSha256 and Node crypto produce bit-for-bit identical outputs for arbitrary strings', () => {
+    const testCases = [
+      'incident_20261114_threat_whatsapp_evidence_01.jpg',
+      'UGC_SAMADHAAN_PETITION_2026_HOSTEL_SANITATION',
+      '🚨 Emergency SOS GPS beacon 17.4483,78.3915 at 11:45:00',
+      JSON.stringify({ platform: 'INSTAGRAM', handle: '@stalker_fake', timestamp: '2026-11-14T11:45:00Z' }),
+    ];
+
+    for (const tc of testCases) {
+      const nodeDigest = hashSha256(tc);
+      const pureJsDigest = pureJsSha256(new TextEncoder().encode(tc));
+      assert.equal(pureJsDigest, nodeDigest, `Divergence on: ${tc}`);
+    }
+  });
+
+  it('throws on null or undefined input', () => {
+    assert.throws(() => hashSha256(null), /cannot be null/);
+    assert.throws(() => hashSha256(undefined), /cannot be null/);
+  });
+});
+

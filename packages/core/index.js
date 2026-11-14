@@ -19,4 +19,5 @@ export * from './services/navigationEngine.js';
 export * from './services/grievanceDraftsman.js';
 export * from './services/stalkLedgerEngine.js';
 export * from './services/protectEngine.js';
+export * from './services/cryptoUtils.js';
 

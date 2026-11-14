@@ -1,5 +1,5 @@
-import Pbf from 'pbf';
-const PbfReader = Pbf.PbfReader || Pbf;
+import * as PbfModule from 'pbf';
+const PbfReader = PbfModule.PbfReader || PbfModule.default || PbfModule.Pbf || PbfModule;
 import { VectorTile } from '@mapbox/vector-tile';
 import { tileLocalToLonLat } from '../../tileMath.js';
 

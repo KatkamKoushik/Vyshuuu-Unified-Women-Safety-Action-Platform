@@ -7,18 +7,21 @@ services:
     container_name: vyshuuu-gateway
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${GATEWAY_PORT:-3000}:3000"
     environment:
       - PORT=3000
       - HOST=0.0.0.0
       - TRUST_PROXY=127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://vyshuuu:vyshuuu_secure_pass@postgis:5432/vyshuuu_gis
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-vyshuuu}:${POSTGRES_PASSWORD:-vyshuuu_secure_pass}@postgis:5432/${POSTGRES_DB:-vyshuuu_gis}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     depends_on:
       redis:
         condition: service_healthy
       postgis:
         condition: service_healthy
+    networks:
+      - vyshuuu-internal
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 15s
@@ -26,15 +29,15 @@ services:
       retries: 3
       start_period: 5s
 
-  # Redis 7 Cache Shield (L1 Cache for routing, corridor amenities & vector tiles)
+  # Redis 7 Cache Shield (Internal Network Only - No Exposed Host Ports)
   redis:
     image: redis:7-alpine
     container_name: vyshuuu-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - vyshuuu-internal
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -42,26 +45,29 @@ services:
       timeout: 3s
       retries: 3
 
-  # PostgreSQL + PostGIS (L2 Spatial Buffer & Pre-indexed Corridor Amenities)
+  # PostgreSQL + PostGIS (Internal Network Only - No Exposed Host Ports)
   postgis:
     image: postgis/postgis:16-3.4-alpine
     container_name: vyshuuu-postgis
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
-      - POSTGRES_USER=vyshuuu
-      - POSTGRES_PASSWORD=vyshuuu_secure_pass
-      - POSTGRES_DB=vyshuuu_gis
+      - POSTGRES_USER=${POSTGRES_USER:-vyshuuu}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vyshuuu_secure_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-vyshuuu_gis}
     volumes:
       - postgis_data:/var/lib/postgresql/data
+    networks:
+      - vyshuuu-internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vyshuuu -d vyshuuu_gis"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vyshuuu} -d ${POSTGRES_DB:-vyshuuu_gis}"]
       interval: 10s
       timeout: 3s
       retries: 3
 
+networks:
+  vyshuuu-internal:
+    driver: bridge
+
 volumes:
   redis_data:
   postgis_data:
-

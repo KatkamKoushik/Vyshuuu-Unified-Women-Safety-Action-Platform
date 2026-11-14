@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import Pbf from 'pbf';
-const PbfWriter = Pbf.PbfWriter || Pbf;
+import * as PbfModule from 'pbf';
+const PbfWriter = PbfModule.PbfWriter || PbfModule.default || PbfModule.Pbf || PbfModule;
 import { decodeCoverageTile } from './decode.js';
 
 const zigzag = (value) => (value << 1) ^ (value >> 31);

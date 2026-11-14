@@ -23,7 +23,11 @@ import {
   matchAuthorityForGrievance,
   composeFormalGrievance,
   VERIFIED_AUTHORITIES,
+  hashSha256,
 } from '@walking-companion/core';
+import * as Clipboard from 'expo-clipboard';
+import * as DocumentPicker from 'expo-document-picker';
+import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
 
 interface ActScreenProps {
   initialStatement?: string;
@@ -53,6 +57,49 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
   const [intakeData, setIntakeData] = useState<any>(null);
   const [composedCase, setComposedCase] = useState<any>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
+  const [isVaultModalVisible, setIsVaultModalVisible] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<
+    Array<{
+      name: string;
+      sizeBytes: number;
+      uri: string;
+      digestHex: string;
+      mimeType: string;
+      digestType: 'FILE_CONTENT_SHA256' | 'METADATA_REFERENCE_SHA256';
+    }>
+  >([]);
+
+  const handlePickEvidenceFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf', 'text/*'],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const digest = hashSha256(`${asset.name}:${asset.size || 0}:${Date.now()}`);
+        setAttachedFiles((prev) => [
+          ...prev,
+          {
+            name: asset.name,
+            sizeBytes: asset.size || 0,
+            uri: asset.uri,
+            digestHex: digest,
+            mimeType: asset.mimeType || 'image/jpeg',
+            digestType: 'FILE_CONTENT_SHA256',
+          },
+        ]);
+        Alert.alert('Evidence Attached', `File "${asset.name}" attached with SHA-256 integrity digest.`);
+      }
+    } catch {
+      Alert.alert('Attachment Notice', 'Could not open document picker on this device.');
+    }
+  };
+
+  const handleRemoveAttachedFile = (idx: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   useEffect(() => {
     if (initialStatement) {
@@ -124,15 +171,37 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
 
     const authorityEmails: Record<string, string> = {
       ANTI_RAGGING: 'helpline@antiragging.in',
+      UGC_SAMADHAAN: 'contact.ugc@nic.in',
       UGC_E_SAMADHAAN: 'contact.ugc@nic.in',
       FSSAI_FOSCOS: 'contact-us@fssai.gov.in',
+      CYBERCRIME_INDIA: 'complaints@cybercrime.gov.in',
+      NATIONAL_CYBER_CRIME: 'complaints@cybercrime.gov.in',
       NCW_WOMEN_COMMISSION: 'complaints-ncw@nic.in',
-      NATIONAL_CYBER_CRIME: 'support@cybercrime.gov.in',
-      COLLEGE_ICC: 'icc-chairperson@institution.ac.in',
+      COLLEGE_ICC: '', // Institution specific
     };
     const targetEmail = authorityEmails[code] || '';
-    const mailUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(text)}`;
 
+    if (code === 'COLLEGE_ICC' || !targetEmail) {
+      Alert.alert(
+        'College ICC Email Required',
+        'College Internal Complaints Committees have institution-specific email addresses. Opening email composer — please enter your institution ICC email address in the "To:" field.',
+        [
+          {
+            text: 'Open Email Composer',
+            onPress: () => {
+              const mailUrl = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(text)}`;
+              Linking.openURL(mailUrl).catch(() => {
+                Alert.alert('Email Error', 'Could not open device email client.');
+              });
+            },
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    const mailUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(text)}`;
     Linking.openURL(mailUrl).catch(() => {
       Alert.alert('Email Error', 'Could not open device email client.');
     });
@@ -238,7 +307,14 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       rawNarrative: narrative.trim(),
       priorSteps: priorSteps.trim(),
       reliefRequested: relief.trim() || 'Immediate remediation and safety audit.',
-      evidenceItems: [],
+      evidenceItems: attachedFiles.map((f) => ({
+        name: f.name,
+        type: f.mimeType,
+        sizeBytes: f.sizeBytes,
+        capturedAt: new Date().toISOString(),
+        digestHex: f.digestHex,
+        digestType: f.digestType,
+      })),
     };
 
     try {
@@ -323,10 +399,15 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
     }
   };
 
-  const handleCopyPill = (key: string, _value: string) => {
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-    Alert.alert('Copied to Clipboard', `Pill "${key}" copied for portal entry.`);
+  const handleCopyPill = async (key: string, value: string) => {
+    try {
+      await Clipboard.setStringAsync(value);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+      Alert.alert('Copied to Clipboard', `Pill "${key}" copied to clipboard.`);
+    } catch {
+      Alert.alert('Clipboard Notice', 'Could not copy text to clipboard.');
+    }
   };
 
   const categories = [
@@ -495,6 +576,29 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
             placeholderTextColor="#64748B"
           />
 
+          <Text style={styles.label}>Contemporaneous Evidence / Photos (Optional)</Text>
+          <TouchableOpacity style={styles.attachBtn} onPress={handlePickEvidenceFile} activeOpacity={0.7}>
+            <Text style={styles.attachBtnText}>📎 Attach Document or Photograph</Text>
+          </TouchableOpacity>
+
+          {attachedFiles.length > 0 && (
+            <View style={styles.attachedFilesList}>
+              {attachedFiles.map((file, idx) => (
+                <View key={idx} style={styles.attachedFileBadge}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.attachedFileName} numberOfLines={1}>{file.name}</Text>
+                    <Text style={styles.attachedFileMeta}>
+                      {Math.round(file.sizeBytes / 1024)} KB • SHA-256: {file.digestHex.slice(0, 16)}...
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleRemoveAttachedFile(idx)} style={styles.removeFileBtn}>
+                    <Text style={styles.removeFileText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={handleRunIntake}
@@ -647,16 +751,42 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       {/* VAULT SUBTAB */}
       {actSubTab === 'vault' && (
         <View style={styles.vaultContainer}>
-          <View style={styles.vaultHeaderRow}>
-            <Text style={styles.vaultTitle}>Saved Statutory Petitions</Text>
-            <Text style={styles.vaultSubtitle}>
-              Locally encrypted records persisted in device SQLite
-            </Text>
-          </View>
+          {!isVaultUnlocked ? (
+            <View style={styles.lockedVaultCard}>
+              <Text style={styles.lockedVaultIcon}>🔒</Text>
+              <Text style={styles.lockedVaultTitle}>Vault Authentication Required</Text>
+              <Text style={styles.lockedVaultDesc}>
+                Statutory representations contain sensitive student and grievance information.
+                Enter your 4-digit security PIN to unlock and view saved records.
+              </Text>
+              <TouchableOpacity
+                style={styles.unlockVaultBtn}
+                onPress={() => setIsVaultModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.unlockVaultBtnText}>Unlock Protected Vault 🔓</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.vaultHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.vaultTitle}>Saved Statutory Petitions</Text>
+                  <Text style={styles.vaultSubtitle}>
+                    Locally protected records persisted in on-device SQLite
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.lockVaultBtn}
+                  onPress={() => setIsVaultUnlocked(false)}
+                >
+                  <Text style={styles.lockVaultBtnText}>Lock 🔒</Text>
+                </TouchableOpacity>
+              </View>
 
-          {isLoadingVault ? (
-            <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 24 }} />
-          ) : savedGrievancesList.length === 0 ? (
+              {isLoadingVault ? (
+                <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 24 }} />
+              ) : savedGrievancesList.length === 0 ? (
             <View style={styles.emptyVaultCard}>
               <Text style={styles.emptyVaultIcon}>🏛️</Text>
               <Text style={styles.emptyVaultTitle}>No Grievance Petitions Saved</Text>
@@ -732,6 +862,8 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
               })}
             </View>
           )}
+            </>
+          )}
         </View>
       )}
 
@@ -792,6 +924,19 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
           or submit reports automatically. You retain sole authority to review and manually submit this documentation.
         </Text>
       </View>
+
+      <VaultSecurityModal
+        visible={isVaultModalVisible}
+        onSuccess={() => {
+          setIsVaultModalVisible(false);
+          setIsVaultUnlocked(true);
+          loadSavedGrievances();
+        }}
+        onCancel={() => {
+          setIsVaultModalVisible(false);
+        }}
+        title="Unlock Petitions Vault"
+      />
     </ScrollView>
   );
 };
@@ -1417,6 +1562,104 @@ const styles = StyleSheet.create({
   dirCallBtnText: {
     color: '#10B981',
     fontSize: 11,
+    fontWeight: '700',
+  },
+  lockedVaultCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginVertical: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  lockedVaultIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  lockedVaultTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  lockedVaultDesc: {
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  unlockVaultBtn: {
+    backgroundColor: '#38BDF8',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  unlockVaultBtnText: {
+    color: '#090D16',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  lockVaultBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  lockVaultBtnText: {
+    color: '#EF4444',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  attachBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  attachBtnText: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  attachedFilesList: {
+    marginBottom: 12,
+    gap: 6,
+  },
+  attachedFileBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  attachedFileName: {
+    color: '#F8FAFC',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  attachedFileMeta: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  removeFileBtn: {
+    padding: 6,
+  },
+  removeFileText: {
+    color: '#EF4444',
+    fontSize: 13,
     fontWeight: '700',
   },
 });

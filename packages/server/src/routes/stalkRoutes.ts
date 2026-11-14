@@ -7,6 +7,7 @@ import {
   STALKLEDGER_DISCLAIMER,
   IncidentRecord,
 } from '@walking-companion/core';
+import { dynamicExposureAudit } from '../services/geminiClient.js';
 
 interface AnalyzeRequestBody {
   incidents: IncidentRecord[];
@@ -78,11 +79,18 @@ export async function registerProtectRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const audit = auditDigitalExposure(textContent);
+    // Connect live Gemini exposure audit when GEMINI_API_KEY is present, with deterministic fallback
+    const dynamicAudit = await dynamicExposureAudit(textContent, process.env.GEMINI_API_KEY);
 
     return reply.send({
       ok: true,
-      audit,
+      audit: {
+        overallRisk: dynamicAudit.overallRisk,
+        adviceSummary: dynamicAudit.adviceSummary,
+        findings: dynamicAudit.findings,
+        isAiGenerated: dynamicAudit.isAiGenerated,
+        engine: dynamicAudit.isAiGenerated ? 'gemini-2.5-flash' : 'deterministic-fallback',
+      },
       disclaimer: PROTECT_DISCLAIMER,
     });
   };

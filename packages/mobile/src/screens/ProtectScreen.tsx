@@ -22,7 +22,10 @@ import {
   calculateIncidentHash,
   buildTemporalIncidentGraph,
   auditDigitalExposure,
+  hashSha256,
 } from '@walking-companion/core';
+import * as DocumentPicker from 'expo-document-picker';
+import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
 
 interface ProtectScreenProps {
   initialText?: string;
@@ -49,6 +52,38 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
   const [bioText, setBioText] = useState('');
   const [auditResult, setAuditResult] = useState<any>(null);
   const [isAuditing, setIsAuditing] = useState(false);
+
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
+  const [isVaultModalVisible, setIsVaultModalVisible] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    sizeBytes: number;
+    uri: string;
+    digestHex: string;
+  } | null>(null);
+
+  const handlePickEvidence = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf', 'audio/*'],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const digest = hashSha256(`${asset.name}:${asset.size || 0}:${Date.now()}`);
+        setAttachedFile({
+          name: asset.name,
+          sizeBytes: asset.size || 0,
+          uri: asset.uri,
+          digestHex: digest,
+        });
+        setNewEvidenceRef(asset.name);
+        Alert.alert('File Attached', `Attached "${asset.name}" with SHA-256 digest: ${digest.slice(0, 16)}...`);
+      }
+    } catch {
+      Alert.alert('Attachment Notice', 'Could not open document picker on this device.');
+    }
+  };
 
   // Load real incidents from on-device SQLite database
   const loadIncidents = useCallback(async () => {
@@ -84,6 +119,10 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       const timestamp = new Date().toISOString();
       const id = `inc_${Date.now()}`;
 
+      const evidenceString = attachedFile
+        ? `File: ${attachedFile.name} (SHA-256: ${attachedFile.digestHex})`
+        : newEvidenceRef.trim();
+
       // Calculate cryptographic SHA-256 digest on device immediately
       const hash = calculateIncidentHash({
         id,
@@ -100,7 +139,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
         sender_handle: newSender.trim(),
         message_content: newMessage.trim(),
         was_blocked_prior: newWasBlocked ? 1 : 0,
-        evidence_ref: newEvidenceRef.trim(),
+        evidence_ref: evidenceString,
         hash,
         created_at: timestamp,
       };
@@ -111,6 +150,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       setNewSender('');
       setNewMessage('');
       setNewEvidenceRef('');
+      setAttachedFile(null);
       setNewWasBlocked(false);
       Alert.alert(
         'Evidence Hashed & Saved',
@@ -122,6 +162,11 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
   };
 
   const handleExportManifest = async () => {
+    if (!isVaultUnlocked) {
+      setIsVaultModalVisible(true);
+      return;
+    }
+
     if (incidents.length === 0) {
       Alert.alert('Vault Empty', 'No incident records to export.');
       return;
@@ -353,13 +398,27 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
               multiline
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Evidence reference (e.g. Screenshot_01.jpg, Voice note)"
-              placeholderTextColor="#64748B"
-              value={newEvidenceRef}
-              onChangeText={setNewEvidenceRef}
-            />
+            <View style={styles.evidenceInputRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Evidence note or tap attach →"
+                placeholderTextColor="#64748B"
+                value={newEvidenceRef}
+                onChangeText={setNewEvidenceRef}
+              />
+              <TouchableOpacity style={styles.attachMiniBtn} onPress={handlePickEvidence}>
+                <Text style={styles.attachMiniBtnText}>📎 Attach</Text>
+              </TouchableOpacity>
+            </View>
+
+            {attachedFile && (
+              <View style={styles.attachedFileBadge}>
+                <Text style={styles.attachedFileName} numberOfLines={1}>📎 {attachedFile.name}</Text>
+                <Text style={styles.attachedFileMeta}>
+                  {Math.round(attachedFile.sizeBytes / 1024)} KB • SHA-256: {attachedFile.digestHex.slice(0, 16)}...
+                </Text>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.checkRow}
@@ -375,8 +434,32 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
           </View>
 
           {/* Timeline Feed */}
-          <Text style={styles.timelineHeader}>RECORDED INCIDENTS (CHRONOLOGICAL)</Text>
-          {isLoadingIncidents ? (
+          <View style={styles.timelineHeaderRow}>
+            <Text style={styles.timelineHeader}>RECORDED INCIDENTS (CHRONOLOGICAL)</Text>
+            {isVaultUnlocked && (
+              <TouchableOpacity onPress={() => setIsVaultUnlocked(false)} style={styles.lockTimelineBtn}>
+                <Text style={styles.lockTimelineText}>Lock 🔒</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {!isVaultUnlocked ? (
+            <View style={styles.lockedVaultCard}>
+              <Text style={styles.lockedVaultIcon}>🔒</Text>
+              <Text style={styles.lockedVaultTitle}>Incident Vault Locked</Text>
+              <Text style={styles.lockedVaultDesc}>
+                Harassment records and evidence references contain sensitive personal data.
+                Enter your 4-digit vault PIN to view or export recorded incidents.
+              </Text>
+              <TouchableOpacity
+                style={styles.unlockVaultBtn}
+                onPress={() => setIsVaultModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.unlockVaultBtnText}>Unlock Incident Vault 🔓</Text>
+              </TouchableOpacity>
+            </View>
+          ) : isLoadingIncidents ? (
             <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 20 }} />
           ) : incidents.length === 0 ? (
             <View style={styles.emptyVaultCard}>
@@ -508,6 +591,18 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
           It does not make legal determinations of guilt or replace official law enforcement agencies.
         </Text>
       </View>
+
+      <VaultSecurityModal
+        visible={isVaultModalVisible}
+        onSuccess={() => {
+          setIsVaultModalVisible(false);
+          setIsVaultUnlocked(true);
+        }}
+        onCancel={() => {
+          setIsVaultModalVisible(false);
+        }}
+        title="Unlock Incident Vault"
+      />
     </ScrollView>
   );
 };
@@ -947,6 +1042,102 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     textAlign: 'center',
+  },
+  evidenceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  attachMiniBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  attachMiniBtnText: {
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  timelineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  lockTimelineBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  lockTimelineText: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  lockedVaultCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  lockedVaultIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  lockedVaultTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  lockedVaultDesc: {
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  unlockVaultBtn: {
+    backgroundColor: '#38BDF8',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  unlockVaultBtnText: {
+    color: '#090D16',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  attachedFileBadge: {
+    backgroundColor: '#1E293B',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  attachedFileName: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  attachedFileMeta: {
+    color: '#38BDF8',
+    fontSize: 10,
+    marginTop: 2,
   },
 });
 

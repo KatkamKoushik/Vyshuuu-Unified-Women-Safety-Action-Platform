@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export type ActiveTab = 'explore' | 'navigate' | 'protect' | 'act' | 'saved';
 
@@ -20,20 +22,31 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   onTabChange,
   hasActiveRoute,
 }) => {
-  const tabs: { key: ActiveTab; label: string; icon: string; badge?: string }[] = [
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+
+  const tabs: { key: ActiveTab; label: string; tag: string; badge?: string }[] = [
     {
       key: 'explore',
-      label: 'Move',
-      icon: '🚶‍♀️',
+      label: t.moveTab || 'Move',
+      tag: 'NAV',
       badge: hasActiveRoute ? 'ACTIVE' : undefined,
     },
-    { key: 'protect', label: 'Protect', icon: '🛡️' },
-    { key: 'act', label: 'Act', icon: '⚖️' },
-    { key: 'saved', label: 'Vault', icon: '🔐' },
+    { key: 'protect', label: t.protectTab || 'Protect', tag: 'SHIELD' },
+    { key: 'act', label: t.actTab || 'Act', tag: 'LEGAL' },
+    { key: 'saved', label: t.vaultTab || 'Vault', tag: 'VAULT' },
   ];
 
   return (
-    <View style={styles.tabBarContainer}>
+    <View
+      style={[
+        styles.tabBarContainer,
+        {
+          backgroundColor: theme.bg,
+          borderTopColor: theme.border,
+        },
+      ]}
+    >
       <View style={styles.tabBarInner}>
         {tabs.map((tab) => {
           const isActive =
@@ -42,7 +55,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           return (
             <TouchableOpacity
               key={tab.key}
-              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                isActive && {
+                  backgroundColor: theme.isDark ? 'rgba(56, 189, 248, 0.12)' : theme.surface,
+                },
+              ]}
               onPress={() => onTabChange(tab.key)}
               activeOpacity={0.7}
               accessibilityRole="tab"
@@ -51,19 +69,34 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
             >
               <View style={styles.iconWrapper}>
-                <Text style={[styles.tabIcon, isActive && styles.tabIconActive]}>
-                  {tab.icon}
+                <Text
+                  style={[
+                    styles.tabTag,
+                    { color: isActive ? theme.primary : theme.textMuted },
+                  ]}
+                >
+                  [{tab.tag}]
                 </Text>
                 {tab.badge && (
-                  <View style={styles.tabBadge}>
+                  <View style={[styles.tabBadge, { backgroundColor: theme.primary }]}>
                     <Text style={styles.tabBadgeText}>{tab.badge}</Text>
                   </View>
                 )}
               </View>
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isActive ? theme.primary : theme.textMuted },
+                  isActive && styles.tabLabelActive,
+                ]}
+              >
                 {tab.label}
               </Text>
-              {isActive && <View style={styles.activeIndicatorDot} />}
+              {isActive && (
+                <View
+                  style={[styles.activeIndicatorDot, { backgroundColor: theme.primary }]}
+                />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -74,9 +107,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
 const styles = StyleSheet.create({
   tabBarContainer: {
-    backgroundColor: '#090D16',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     paddingTop: 8,
     paddingHorizontal: 8,
@@ -93,55 +124,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabIcon: {
-    fontSize: 20,
-    opacity: 0.65,
-  },
-  tabIconActive: {
-    opacity: 1,
-    transform: [{ scale: 1.08 }],
-  },
-  tabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -16,
-    backgroundColor: '#10B981',
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  tabBadgeText: {
-    color: '#090D16',
-    fontSize: 8,
+  tabTag: {
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   tabLabel: {
     fontSize: 11,
-    fontWeight: '500',
-    color: '#64748B',
+    fontWeight: '600',
     marginTop: 2,
   },
   tabLabelActive: {
-    color: '#38BDF8',
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -24,
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '800',
   },
   activeIndicatorDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#38BDF8',
     marginTop: 2,
   },
 });

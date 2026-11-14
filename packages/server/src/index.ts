@@ -8,14 +8,14 @@ async function main() {
   const server = await buildServer({ logger: true });
 
   const gracefulShutdown = async (signal: string) => {
-    console.log(`[vyshuuu Gateway] Received ${signal}, closing server gracefully...`);
+    console.log(`[ResQ Gateway] Received ${signal}, closing server gracefully...`);
     try {
       if (defaultCache.stop) defaultCache.stop();
       await server.close();
-      console.log('[vyshuuu Gateway] Server closed cleanly.');
+      console.log('[ResQ Gateway] Server closed cleanly.');
       process.exit(0);
     } catch (err) {
-      console.error('[vyshuuu Gateway] Error during shutdown:', err);
+      console.error('[ResQ Gateway] Error during shutdown:', err);
       process.exit(1);
     }
   };
@@ -25,9 +25,9 @@ async function main() {
 
   try {
     const address = await server.listen({ port: PORT, host: HOST });
-    console.log(`[vyshuuu Gateway] Server listening at ${address}`);
+    console.log(`[ResQ Gateway] Server listening at ${address}`);
   } catch (err) {
-    console.error('[vyshuuu Gateway] Failed to start server:', err);
+    console.error('[ResQ Gateway] Failed to start server:', err);
     process.exit(1);
   }
 }

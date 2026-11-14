@@ -11,6 +11,7 @@ import { registerActRoutes } from './routes/actRoutes.js';
 import { registerProtectRoutes } from './routes/protectRoutes.js';
 import { registerNavigatorRoutes } from './routes/navigatorRoutes.js';
 import { registerExportRoutes } from './routes/exportRoutes.js';
+import { getDashboardHtml } from './dashboard/dashboardHtml.js';
 
 export interface ServerOptions {
   logger?: boolean;
@@ -68,12 +69,19 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
     });
   }
 
+  // Web Application & Interactive Dashboard
+  const serveDashboard = async (_request: any, reply: any) => {
+    return reply.type('text/html; charset=utf-8').send(getDashboardHtml());
+  };
+  app.get('/', serveDashboard);
+  app.get('/dashboard', serveDashboard);
+
   // Health & Monitoring Endpoint with memory & runtime telemetry
   app.get('/health', async () => {
     const mem = process.memoryUsage();
     return {
       status: 'ok',
-      service: 'vyshuuu Geospatial Gateway',
+      service: 'ResQ Geospatial Gateway',
       version: '1.0.0',
       uptime: Math.round(process.uptime()),
       cacheEntries: defaultCache.size(),

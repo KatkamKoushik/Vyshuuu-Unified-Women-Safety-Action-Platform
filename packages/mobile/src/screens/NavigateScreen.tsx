@@ -234,7 +234,7 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
     }
     Alert.alert(
       'Emergency Speed Dial (112)',
-      'This opens your device phone dialer with 112 pre-filled. vyshuuu does not automatically dispatch emergency personnel or place calls silently.',
+      'This opens your device phone dialer with 112 pre-filled. ResQ does not automatically dispatch emergency personnel or place calls silently.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

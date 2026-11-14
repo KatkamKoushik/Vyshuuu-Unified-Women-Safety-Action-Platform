@@ -7,6 +7,8 @@ import {
   Linking,
   Alert,
 } from 'react-native';
+import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuickExitBarProps {
   onToggleDisguise: () => void;
@@ -19,6 +21,9 @@ export const QuickExitBar: React.FC<QuickExitBarProps> = ({
   onOpenNavigator,
   onOpenSos,
 }) => {
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+
   const handleEmergencyCall = () => {
     if (onOpenSos) {
       onOpenSos();
@@ -43,49 +48,82 @@ export const QuickExitBar: React.FC<QuickExitBarProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.bg,
+          borderBottomColor: theme.border,
+        },
+      ]}
+    >
       {/* Brand & Navigator Button */}
       <View style={styles.brandRow}>
         <View style={styles.identityGroup}>
-          <Text style={styles.brandTitle}>vyshuuu</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>VERIFIED</Text>
+          <Text style={[styles.brandTitle, { color: theme.text }]}>
+            {t.appName || 'ResQ'}
+          </Text>
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: theme.isDark ? 'rgba(56, 189, 248, 0.15)' : theme.primaryLight,
+                borderColor: theme.isDark ? 'rgba(56, 189, 248, 0.3)' : theme.borderLight,
+              },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: theme.primary }]}>
+              {t.verifiedBadge || 'VERIFIED'}
+            </Text>
           </View>
         </View>
 
         <TouchableOpacity
-          style={styles.navigatorButton}
+          style={[
+            styles.navigatorButton,
+            {
+              backgroundColor: theme.isDark ? 'rgba(129, 140, 248, 0.15)' : theme.surface,
+              borderColor: theme.isDark ? 'rgba(129, 140, 248, 0.3)' : theme.border,
+            },
+          ]}
           onPress={onOpenNavigator}
           activeOpacity={0.7}
-          accessibilityLabel="Open AI Safety Navigator"
+          accessibilityLabel="Open AI Safety Assistant"
         >
-          <Text style={styles.navigatorIcon}>✨</Text>
-          <Text style={styles.navigatorLabel}>Ask Navigator</Text>
+          <Text style={[styles.navigatorLabel, { color: theme.primary }]}>
+            {t.askAssistant || 'AI Assistant'}
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Safety Actions: Quick Disguise & 112 Direct Dial */}
       <View style={styles.actionsRow}>
         <TouchableOpacity
-          style={styles.disguiseButton}
+          style={[
+            styles.disguiseButton,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+          ]}
           onPress={onToggleDisguise}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Disguise screen with calculator"
         >
-          <Text style={styles.disguiseIcon}>🧮</Text>
-          <Text style={styles.disguiseLabel}>Quick Disguise</Text>
+          <Text style={[styles.disguiseLabel, { color: theme.textSecondary }]}>
+            {t.quickDisguise || 'Quick Disguise'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.sosButton}
+          style={[styles.sosButton, { backgroundColor: theme.danger }]}
           onPress={handleEmergencyCall}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Dial 112 Emergency line"
         >
-          <Text style={styles.sosIcon}>🚨</Text>
-          <Text style={styles.sosLabel}>112 SOS</Text>
+          <Text style={styles.sosLabel}>{t.sosButton || '112 SOS'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -94,9 +132,7 @@ export const QuickExitBar: React.FC<QuickExitBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#0B1120',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 10,
@@ -116,41 +152,28 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAFC',
     letterSpacing: -0.5,
   },
   badge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   badgeText: {
-    color: '#38BDF8',
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   navigatorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(129, 140, 248, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.3)',
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    gap: 4,
-  },
-  navigatorIcon: {
-    fontSize: 12,
   },
   navigatorLabel: {
-    color: '#A5B4FC',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -158,36 +181,22 @@ const styles = StyleSheet.create({
   },
   disguiseButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B',
     paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  disguiseIcon: {
-    fontSize: 14,
   },
   disguiseLabel: {
-    color: '#94A3B8',
     fontSize: 12,
     fontWeight: '600',
   },
   sosButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E11D48',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
-  },
-  sosIcon: {
-    fontSize: 14,
+    borderRadius: 8,
   },
   sosLabel: {
     color: '#FFFFFF',
@@ -196,4 +205,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-

@@ -10,7 +10,7 @@ export function RouteHeader({ onOpenSavedJourneys }: RouteHeaderProps) {
     <View style={styles.header}>
       <View style={styles.headerTitleRow}>
         <View style={styles.headerLeft}>
-          <Text style={styles.appTitle}>vyshuuu</Text>
+          <Text style={styles.appTitle}>ResQ</Text>
           <View style={styles.devBadge}>
             <Text style={styles.devBadgeText}>OSRM Dev Provider</Text>
           </View>

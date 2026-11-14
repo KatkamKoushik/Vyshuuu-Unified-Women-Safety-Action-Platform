@@ -113,7 +113,8 @@ export async function registerActRoutes(fastify: FastifyInstance) {
       impact,
       reliefRequested,
       evidenceItems,
-    } = body;
+      clarificationAnswers,
+    } = body as any;
 
     if (!institutionName || !hostelOrLocation || !rawNarrative || !category || !incidentDate) {
       return reply.status(400).send({
@@ -136,6 +137,7 @@ export async function registerActRoutes(fastify: FastifyInstance) {
         impact,
         reliefRequested,
         evidenceItems,
+        clarificationAnswers,
       });
 
       return reply.send({

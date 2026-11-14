@@ -4,6 +4,8 @@ import { defaultCache } from '../cache/cacheService.js';
 interface GeocodeQuery {
   q?: string;
   limit?: string;
+  lat?: string;
+  lon?: string;
 }
 
 export interface GeocodeLocation {
@@ -11,6 +13,21 @@ export interface GeocodeLocation {
   subtitle: string;
   latitude: number;
   longitude: number;
+  distanceKm?: number;
+}
+
+/**
+ * Calculates Haversine distance in kilometers between two GPS points
+ */
+function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 // Built-in benchmark locations for fast instant lookup (Indian hubs prioritized)
@@ -102,6 +119,9 @@ export async function registerGeocodeRoutes(fastify: FastifyInstance) {
     ) => {
       let query = (request.query.q || '').trim();
       const limit = Math.min(10, Math.max(1, parseInt(request.query.limit || '5', 10)));
+      const userLat = request.query.lat ? parseFloat(request.query.lat) : NaN;
+      const userLon = request.query.lon ? parseFloat(request.query.lon) : NaN;
+      const hasUserLocation = Number.isFinite(userLat) && Number.isFinite(userLon);
 
       // Strip control chars, null bytes, and non-printable characters (anti-SSRF / anti-injection)
       query = query.replace(/[\x00-\x1F\x7F]/g, '');
@@ -115,15 +135,88 @@ export async function registerGeocodeRoutes(fastify: FastifyInstance) {
         query = query.slice(0, 120);
       }
 
-      const cacheKey = `geocode:${query.toLowerCase()}:${limit}`;
+      // Strip conversational prefixes so "nearest park" searches for "park" with spatial proximity
+      const cleanQuery = query.replace(/^(nearest|nearby|close\s+to|around)\s+/i, '').trim() || query;
+
+      const locKey = hasUserLocation ? `:${userLat.toFixed(2)},${userLon.toFixed(2)}` : '';
+      const cacheKey = `geocode:${cleanQuery.toLowerCase()}:${limit}${locKey}`;
       const cached = await defaultCache.get(cacheKey);
       if (cached) {
         reply.header('X-Cache-Status', 'HIT');
         return cached;
       }
 
-      // Check benchmark locations first
-      const lowerQ = query.toLowerCase();
+      // 1. Query Photon OSM Geocoder with proximity biasing
+      const photonController = new AbortController();
+      const photonTimer = setTimeout(() => photonController.abort(), 4000);
+
+      try {
+        let photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQuery)}&limit=${limit * 2}&bbox=68.1,6.7,97.4,35.5`;
+        if (hasUserLocation) {
+          photonUrl += `&lat=${userLat}&lon=${userLon}`;
+        }
+
+        const res = await fetch(photonUrl, {
+          headers: {
+            'User-Agent': 'ResQGeospatialGateway/1.0',
+            'Accept': 'application/json',
+          },
+          signal: photonController.signal,
+        });
+
+        clearTimeout(photonTimer);
+
+        if (res.ok) {
+          const data: any = await res.json();
+          if (Array.isArray(data.features) && data.features.length > 0) {
+            let results: GeocodeLocation[] = data.features
+              .map((feat: any) => {
+                const coords = feat?.geometry?.coordinates;
+                if (!Array.isArray(coords) || coords.length < 2) return null;
+                const lon = coords[0];
+                const lat = coords[1];
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+                const p = feat.properties || {};
+                const distKm = hasUserLocation ? calculateHaversineKm(userLat, userLon, lat, lon) : undefined;
+                
+                const localityParts = [p.street, p.locality || p.district, p.city, p.state].filter(Boolean);
+                let subtitle = localityParts.join(', ') || 'India';
+                if (distKm !== undefined) {
+                  const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)}m away` : `${distKm.toFixed(1)} km away`;
+                  subtitle = `${distLabel} • ${subtitle}`;
+                }
+
+                return {
+                  title: p.name || localityParts[0] || 'Unknown Place',
+                  subtitle,
+                  latitude: lat,
+                  longitude: lon,
+                  distanceKm: distKm,
+                };
+              })
+              .filter((loc: GeocodeLocation | null): loc is GeocodeLocation => loc !== null);
+
+            // Sort by proximity to user if user coordinates provided
+            if (hasUserLocation) {
+              results.sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+            }
+
+            results = results.slice(0, limit);
+
+            if (results.length > 0) {
+              await defaultCache.set(cacheKey, results, 86400); // 24h
+              reply.header('X-Cache-Status', 'MISS');
+              return results;
+            }
+          }
+        }
+      } catch {
+        clearTimeout(photonTimer);
+      }
+
+      // Check benchmark locations as fallback if Photon fails
+      const lowerQ = cleanQuery.toLowerCase();
       const matches = BENCHMARK_LOCATIONS.filter(
         (loc) =>
           loc.title.toLowerCase().includes(lowerQ) ||
@@ -135,55 +228,6 @@ export async function registerGeocodeRoutes(fastify: FastifyInstance) {
         await defaultCache.set(cacheKey, results, 86400); // 24h
         reply.header('X-Cache-Status', 'MISS');
         return results;
-      }
-
-      // 1. Query Photon OSM Geocoder (designed specifically for keystroke typeahead)
-      const photonController = new AbortController();
-      const photonTimer = setTimeout(() => photonController.abort(), 4000);
-
-      try {
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=${limit}&bbox=68.1,6.7,97.4,35.5`;
-        const res = await fetch(photonUrl, {
-          headers: {
-            'User-Agent': 'vyshuuuGeospatialGateway/1.0',
-            'Accept': 'application/json',
-          },
-          signal: photonController.signal,
-        });
-
-        clearTimeout(photonTimer);
-
-        if (res.ok) {
-          const data: any = await res.json();
-          if (Array.isArray(data.features) && data.features.length > 0) {
-            const results: GeocodeLocation[] = data.features
-              .map((feat: any) => {
-                const coords = feat?.geometry?.coordinates;
-                if (!Array.isArray(coords) || coords.length < 2) return null;
-                const lon = coords[0];
-                const lat = coords[1];
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-
-                const p = feat.properties || {};
-                const subtitleParts = [p.street, p.locality || p.district, p.city, p.state, p.country].filter(Boolean);
-                return {
-                  title: p.name || subtitleParts[0] || 'Unknown Place',
-                  subtitle: subtitleParts.join(', '),
-                  latitude: lat,
-                  longitude: lon,
-                };
-              })
-              .filter((loc: GeocodeLocation | null): loc is GeocodeLocation => loc !== null);
-
-            if (results.length > 0) {
-              await defaultCache.set(cacheKey, results, 86400); // 24h
-              reply.header('X-Cache-Status', 'MISS');
-              return results;
-            }
-          }
-        }
-      } catch {
-        clearTimeout(photonTimer);
       }
 
       // Note: Deliberately do NOT fallback to public Nominatim for autocomplete (OSMF Fair Use Policy).

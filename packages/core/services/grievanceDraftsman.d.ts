@@ -75,6 +75,7 @@ export interface GrievanceDraftInput {
   impact?: string;
   reliefRequested?: string;
   evidenceItems?: EvidenceItemInput[];
+  clarificationAnswers?: Array<{ question: string; answer: string }>;
 }
 
 export function calculateEvidenceSha256(data: string | Buffer | Uint8Array): string;

@@ -17,6 +17,10 @@ import {
   getSecuritySetting,
   setSecuritySetting,
 } from '../services/storageService';
+import { useTheme, THEMES, ThemeType } from '../theme/ThemeContext';
+import { useLanguage, LanguageCode } from '../context/LanguageContext';
+import { FaqModal } from './FaqModal';
+import { SupportModal } from './SupportModal';
 
 interface SettingsModalProps {
   visible: boolean;
@@ -29,9 +33,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onDataWiped,
 }) => {
+  const { theme, themeType, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+
   const [stealthPin, setStealthPinState] = useState('112=');
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
+  const [showFaq, setShowFaq] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -83,131 +92,204 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     );
   };
 
+  const themeOptions: Array<{ type: ThemeType; label: string; desc: string }> = [
+    { type: 'white', label: 'White (Light)', desc: 'Clean, high-contrast light theme' },
+    { type: 'black', label: 'OLED Black', desc: 'Pure black for OLED battery efficiency' },
+    { type: 'navy', label: 'Midnight Navy', desc: 'Deep ocean dark mode' },
+    { type: 'grey', label: 'Slate Grey', desc: 'Neutral balanced charcoal' },
+  ];
+
+  const languageOptions: Array<{ code: LanguageCode; label: string; sub: string }> = [
+    { code: 'en', label: 'English', sub: 'Standard' },
+    { code: 'te', label: 'తెలుగు (Telugu)', sub: 'ఆంధ్రప్రదేశ్ / తెలంగాణ' },
+    { code: 'hi', label: 'हिन्दी (Hindi)', sub: 'भारत' },
+  ];
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>⚙️ Settings & Privacy</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeText}>Done</Text>
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
+
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Settings & Privacy</Text>
+          <TouchableOpacity
+            style={[styles.doneBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.doneBtnText, { color: theme.text }]}>Done</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
-          {/* Privacy & Zero Telemetry Notice */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛡️ Privacy Model</Text>
-            <Text style={styles.bodyText}>
-              This application has zero advertising trackers, zero user identification SDKs, and zero telemetry analytics.
-              All journey records and favorites remain exclusively inside your device's local SQLite database.
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {/* Theme Section */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Display Theme</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              Select your preferred visual theme across the application.
             </Text>
+            <View style={styles.optionsGrid}>
+              {themeOptions.map((opt) => {
+                const isSelected = themeType === opt.type;
+                return (
+                  <TouchableOpacity
+                    key={opt.type}
+                    style={[
+                      styles.themeCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: isSelected ? theme.primary : theme.border,
+                        borderWidth: isSelected ? 2 : 1,
+                      },
+                    ]}
+                    onPress={() => setTheme(opt.type)}
+                  >
+                    <View style={styles.themeRadioRow}>
+                      <Text style={[styles.themeLabel, { color: theme.text, fontWeight: isSelected ? '700' : '500' }]}>
+                        {opt.label}
+                      </Text>
+                      {isSelected && (
+                        <View style={[styles.activePill, { backgroundColor: theme.primary }]}>
+                          <Text style={styles.activePillText}>ACTIVE</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{opt.desc}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          {/* Data Flow Inventory */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🌐 Data Flow Inventory</Text>
-            <Text style={styles.inventoryIntro}>
-              When you perform actions, specific minimal queries leave your device:
+          {/* Language Section */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Language / భాష / भाषा</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              Change user interface display language.
             </Text>
-
-            <View style={styles.inventoryItem}>
-              <Text style={styles.itemTitle}>1. Walking Route Calculations</Text>
-              <Text style={styles.itemRecipient}>Recipient: routing.openstreetmap.de (OSRM Foot)</Text>
-              <Text style={styles.itemData}>Data sent: Origin and destination coordinates.</Text>
-            </View>
-
-            <View style={styles.inventoryItem}>
-              <Text style={styles.itemTitle}>2. Destination Search & Geocoding</Text>
-              <Text style={styles.itemRecipient}>Recipient: photon.komoot.io (Photon) / vyshuuu Gateway</Text>
-              <Text style={styles.itemData}>Data sent: Text search query with geographic focus; fair-use typeahead API.</Text>
-            </View>
-
-            <View style={styles.inventoryItem}>
-              <Text style={styles.itemTitle}>3. Route Amenity Corridor Queries</Text>
-              <Text style={styles.itemRecipient}>Recipient: overpass-api.de (OSM Overpass)</Text>
-              <Text style={styles.itemData}>Data sent: Bounding box enclosing the route polyline.</Text>
-            </View>
-
-            <View style={styles.inventoryItem}>
-              <Text style={styles.itemTitle}>4. Street-level Imagery Queries</Text>
-              <Text style={styles.itemRecipient}>Recipient: api.panoramax.xyz / panoramax.ign.fr</Text>
-              <Text style={styles.itemData}>Data sent: Bounding box for STAC photo metadata.</Text>
+            <View style={styles.optionsGrid}>
+              {languageOptions.map((opt) => {
+                const isSelected = language === opt.code;
+                return (
+                  <TouchableOpacity
+                    key={opt.code}
+                    style={[
+                      styles.langCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: isSelected ? theme.primary : theme.border,
+                        borderWidth: isSelected ? 2 : 1,
+                      },
+                    ]}
+                    onPress={() => setLanguage(opt.code)}
+                  >
+                    <View style={styles.themeRadioRow}>
+                      <Text style={[styles.themeLabel, { color: theme.text, fontWeight: isSelected ? '700' : '500' }]}>
+                        {opt.label}
+                      </Text>
+                      {isSelected && (
+                        <View style={[styles.activePill, { backgroundColor: theme.primary }]}>
+                          <Text style={styles.activePillText}>SELECTED</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{opt.sub}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
-          {/* Security & Stealth Disguise Controls */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔒 Stealth & Disguise Security</Text>
-            <Text style={styles.bodyText}>
-              When you activate Quick Disguise, vyshuuu displays an authentic calculator. Only entering your secret sequence unlocks the app.
+          {/* Knowledge & Support Links */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Help & Emergency Support</Text>
+            <TouchableOpacity
+              style={[styles.menuRow, { borderBottomColor: theme.border }]}
+              onPress={() => setShowFaq(true)}
+            >
+              <View>
+                <Text style={[styles.menuRowTitle, { color: theme.text }]}>Frequently Asked Questions</Text>
+                <Text style={[styles.menuRowSubtitle, { color: theme.textMuted }]}>
+                  How routing, evidence hashing, and statutory rights work
+                </Text>
+              </View>
+              <Text style={[styles.menuChevron, { color: theme.primary }]}>&gt;</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => setShowSupport(true)}
+            >
+              <View>
+                <Text style={[styles.menuRowTitle, { color: theme.danger }]}>Support & Official Helplines</Text>
+                <Text style={[styles.menuRowSubtitle, { color: theme.textMuted }]}>
+                  112, 1091 Women Helpline, 1930 Cybercrime, and NCW
+                </Text>
+              </View>
+              <Text style={[styles.menuChevron, { color: theme.danger }]}>&gt;</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Stealth Disguise Sequence Configuration */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Stealth Disguise Security</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              When Quick Disguise is triggered, ResQ displays an authentic calculator. Only entering your secret unlock sequence exits stealth mode.
             </Text>
 
             <View style={styles.pinConfigRow}>
               <View>
-                <Text style={styles.pinConfigLabel}>Current Unlock Sequence:</Text>
-                <Text style={styles.pinConfigValue}>{stealthPin}</Text>
+                <Text style={[styles.pinConfigLabel, { color: theme.textMuted }]}>Current Unlock Sequence:</Text>
+                <Text style={[styles.pinConfigValue, { color: theme.primary }]}>{stealthPin}</Text>
               </View>
-
               <TouchableOpacity
-                style={styles.changePinBtn}
-                onPress={() => {
-                  setNewPinInput(stealthPin.replace('=', ''));
-                  setIsEditingPin(!isEditingPin);
-                }}
+                style={[styles.changePinBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => setIsEditingPin(!isEditingPin)}
               >
-                <Text style={styles.changePinBtnText}>
-                  {isEditingPin ? 'Cancel' : 'Change PIN'}
+                <Text style={[styles.changePinBtnText, { color: theme.text }]}>
+                  {isEditingPin ? 'Cancel' : 'Change'}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {isEditingPin && (
-              <View style={styles.pinEditBox}>
-                <Text style={styles.pinEditHelp}>
-                  Enter new sequence (e.g. 112, 2026, 789). Tapping '=' after these digits unlocks the app.
-                </Text>
-                <View style={styles.pinInputRow}>
-                  <TextInput
-                    style={styles.pinInput}
-                    value={newPinInput}
-                    onChangeText={setNewPinInput}
-                    placeholder="e.g. 2026"
-                    placeholderTextColor="#64748B"
-                    keyboardType="number-pad"
-                    maxLength={8}
-                  />
-                  <TouchableOpacity
-                    style={styles.savePinBtn}
-                    onPress={handleSaveStealthPin}
-                  >
-                    <Text style={styles.savePinBtnText}>Save PIN</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={[styles.editPinBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <TextInput
+                  style={[styles.pinInput, { color: theme.text, borderColor: theme.border }]}
+                  placeholder="e.g. 112 or 2026"
+                  placeholderTextColor={theme.textMuted}
+                  value={newPinInput}
+                  onChangeText={setNewPinInput}
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={8}
+                />
+                <TouchableOpacity
+                  style={[styles.savePinBtn, { backgroundColor: theme.primary }]}
+                  onPress={handleSaveStealthPin}
+                >
+                  <Text style={styles.savePinBtnText}>Save Sequence</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {/* Attribution & Legal Notices */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📜 Attribution & Licenses</Text>
-            <Text style={styles.bodyText}>• OpenStreetMap data © OpenStreetMap contributors (ODbL)</Text>
-            <Text style={styles.bodyText}>• Basemap cartography © OpenStreetMap contributors</Text>
-            <Text style={styles.bodyText}>• Street photos © Panoramax contributors (CC-BY-SA 4.0)</Text>
-            <Text style={styles.bodyText}>• Solar position algorithms based on NOAA GML equations</Text>
-            <Text style={styles.bodyText}>• Map rendering via MapLibre GL Native</Text>
-          </View>
-
-          {/* Data Management Actions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🗑️ Data Management</Text>
-            <TouchableOpacity style={styles.wipeButton} onPress={handleHardWipe}>
-              <Text style={styles.wipeButtonText}>Clear All Local Journey History</Text>
-            </TouchableOpacity>
-            <Text style={styles.wipeSubtext}>
-              Immediately deletes all saved journeys, favorite routes, and search cache from on-device SQLite.
+          {/* Emergency Panic Wipe */}
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.danger }]}>
+            <Text style={[styles.sectionTitle, { color: theme.danger }]}>Permanent 1-Tap Hard Wipe</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              Immediately purges all saved corridors, search logs, incident records, and statutory drafts with SQLite VACUUM.
             </Text>
+            <TouchableOpacity
+              style={[styles.hardWipeBtn, { backgroundColor: theme.danger }]}
+              onPress={handleHardWipe}
+            >
+              <Text style={styles.hardWipeBtnText}>Permanently Wipe All Data</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
+
+        <FaqModal visible={showFaq} onClose={() => setShowFaq(false)} />
+        <SupportModal visible={showSupport} onClose={() => setShowSupport(false)} />
       </SafeAreaView>
     </Modal>
   );
@@ -216,182 +298,165 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B132B',
   },
   header: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: (StatusBar.currentHeight || 28) + 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#F8FAFC',
+    fontWeight: '700',
   },
-  closeButton: {
-    backgroundColor: '#0284C7',
+  doneBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 8,
   },
-  closeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  doneBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
-  content: {
+  scroll: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    gap: 16,
   },
   section: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderRadius: 14,
+    padding: 16,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#38BDF8',
-    marginBottom: 8,
-  },
-  bodyText: {
-    fontSize: 12,
-    color: '#CBD5E1',
-    lineHeight: 18,
     marginBottom: 4,
   },
-  inventoryIntro: {
+  sectionSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 10,
+    lineHeight: 17,
+    marginBottom: 12,
   },
-  inventoryItem: {
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
+  optionsGrid: {
+    gap: 8,
   },
-  itemTitle: {
-    fontSize: 12,
+  themeCard: {
+    borderRadius: 10,
+    padding: 12,
+  },
+  langCard: {
+    borderRadius: 10,
+    padding: 12,
+  },
+  themeRadioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  themeLabel: {
+    fontSize: 14,
+  },
+  activePill: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  activePillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
     fontWeight: '700',
-    color: '#F1F5F9',
+    letterSpacing: 0.5,
   },
-  itemRecipient: {
+  themeDesc: {
     fontSize: 11,
-    color: '#38BDF8',
-    marginTop: 2,
   },
-  itemData: {
+  menuRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  menuRowTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  menuRowSubtitle: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+  },
+  menuChevron: {
+    fontSize: 18,
+    fontWeight: '700',
+    paddingHorizontal: 8,
   },
   pinConfigRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    marginTop: 8,
   },
   pinConfigLabel: {
-    color: '#94A3B8',
     fontSize: 11,
-    fontWeight: '600',
   },
   pinConfigValue: {
-    color: '#38BDF8',
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   changePinBtn: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   changePinBtnText: {
-    color: '#38BDF8',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  pinEditBox: {
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    gap: 8,
+  editPinBox: {
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  pinEditHelp: {
-    color: '#94A3B8',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  pinInputRow: {
+    borderRadius: 10,
+    padding: 10,
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
   pinInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: '#F8FAFC',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     fontSize: 14,
-    fontWeight: '700',
   },
   savePinBtn: {
-    backgroundColor: '#38BDF8',
-    borderRadius: 6,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   savePinBtnText: {
-    color: '#090D16',
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  wipeButton: {
-    backgroundColor: '#DC2626',
+  hardWipeBtn: {
+    marginTop: 10,
     borderRadius: 10,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 4,
   },
-  wipeButtonText: {
+  hardWipeBtnText: {
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  wipeSubtext: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 6,
-    textAlign: 'center',
   },
 });
-

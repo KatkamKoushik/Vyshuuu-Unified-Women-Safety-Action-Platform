@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,6 +13,21 @@ import {
   Platform,
 } from 'react-native';
 import { GATEWAY_BASE_URL } from '../../services/routingAdapter';
+import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  engine?: string;
+  actionPill?: {
+    label: string;
+    targetScreen: string;
+    initialPayload?: any;
+    phone?: string;
+  };
+}
 
 interface NavigatorModalProps {
   visible: boolean;
@@ -25,204 +40,279 @@ export const NavigatorModal: React.FC<NavigatorModalProps> = ({
   onClose,
   onNavigateToTab,
 }) => {
-  const [query, setQuery] = useState('');
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+  const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{
-    isEmergency?: boolean;
-    intent?: string;
-    title?: string;
-    guidance?: string;
-    actionPill?: { label: string; targetScreen: string; initialPayload?: any };
-  } | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'init_1',
+      role: 'assistant',
+      text: 'I am your ResQ AI Safety Assistant. I can help you evaluate well-lit walking corridors (Move), preserve electronic harassment evidence with SHA-256 byte digests (Protect), or draft statutory grievances under UGC and PoSH mandates (Act). How can I assist you?',
+      engine: 'gemini-2.5-flash',
+    },
+  ]);
+
+  const scrollRef = useRef<any>(null);
 
   const suggestedPrompts = [
-    'Rats in hostel room bit my foot; warden ignored complaint',
-    'Someone created fake Instagram account sending me unwanted DMs',
-    'Find best lit walking corridor to library at night',
+    'Find well-lit walking corridor to library',
+    'Rats in hostel room; warden ignored complaint',
+    'Fake Instagram account sending unwanted DMs',
     'Emergency: someone is following me right now',
   ];
 
-  const handleTriage = async (customQuery?: string) => {
-    const q = (customQuery || query).trim();
-    if (!q) return;
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+    }
+  }, [visible, messages]);
 
+  const handleSendMessage = async (textToSend?: string) => {
+    const text = (textToSend || inputText).trim();
+    if (!text || isLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: `u_${Date.now()}`,
+      role: 'user',
+      text,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputText('');
     setIsLoading(true);
-    setResult(null);
 
     try {
-      const res = await fetch(`${GATEWAY_BASE_URL}/api/v1/navigator/triage`, {
+      const historyPayload = [...messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.text,
+      }));
+
+      const res = await fetch(`${GATEWAY_BASE_URL}/api/v1/navigator/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ messages: historyPayload }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setResult(data);
+        const assistantMsg: ChatMessage = {
+          id: `a_${Date.now()}`,
+          role: 'assistant',
+          text: data.reply || 'Guidance received.',
+          engine: data.engine || (data.isAiGenerated ? 'gemini-2.5-flash' : 'local-rules'),
+          actionPill: data.actionPill,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
       } else {
-        // Fallback local heuristic triage if backend unreachable
-        fallbackLocalTriage(q);
+        fallbackHeuristicReply(text);
       }
     } catch {
-      fallbackLocalTriage(q);
+      fallbackHeuristicReply(text);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fallbackLocalTriage = (q: string) => {
+  const fallbackHeuristicReply = (q: string) => {
     const lower = q.toLowerCase();
-    if (lower.includes('follow') || lower.includes('danger') || lower.includes('emergency')) {
-      setResult({
-        isEmergency: true,
-        intent: 'EMERGENCY',
-        title: 'Immediate Safety Alert',
-        guidance: 'Dial 112 directly. Move towards a well-lit, populated commercial shop immediately.',
-        actionPill: { label: 'Dial 112 Helpline', targetScreen: 'DIALER' },
-      });
+    let reply = 'I can help guide you across ResQ tools.';
+    let pill: any;
+
+    if (lower.includes('follow') || lower.includes('danger') || lower.includes('emergency') || lower.includes('sos')) {
+      reply = 'Emergency Alert: Dial 112 immediately. Move towards a well-lit, populated commercial shop or safe haven.';
+      pill = { label: 'Call 112 Helpline', targetScreen: 'DIALER', phone: '112' };
     } else if (lower.includes('rat') || lower.includes('hostel') || lower.includes('warden') || lower.includes('food')) {
-      setResult({
-        isEmergency: false,
-        intent: 'ACT',
-        title: 'Act — Statutory Grievance Navigator',
-        guidance: 'UGC e-Samadhaan enforces a statutory 20-working-day redressal window for hostel living conditions.',
-        actionPill: { label: 'Open Grievance Wizard', targetScreen: 'ActScreen', initialPayload: { initialStatement: q } },
-      });
+      reply = 'Under UGC e-Samadhaan regulations, universities must address basic living and hygiene grievances within 20 working days. Let us draft a formal petition.';
+      pill = { label: 'Open Grievance Draftsman (Act)', targetScreen: 'ActScreen', initialPayload: { initialStatement: q } };
     } else if (lower.includes('instagram') || lower.includes('whatsapp') || lower.includes('stalk') || lower.includes('dm')) {
-      setResult({
-        isEmergency: false,
-        intent: 'PROTECT',
-        title: 'Protect — Incident Evidence Vault',
-        guidance: 'Preserve cross-platform electronic messages with cryptographic SHA-256 integrity verification.',
-        actionPill: { label: 'Open Incident Vault', targetScreen: 'ProtectScreen', initialPayload: { initialText: q } },
-      });
+      reply = 'Preserve cross-platform electronic messages with cryptographic SHA-256 byte verification for official cybercrime reporting.';
+      pill = { label: 'Open Incident Vault (Protect)', targetScreen: 'ProtectScreen', initialPayload: { initialText: q } };
     } else {
-      setResult({
-        isEmergency: false,
-        intent: 'MOVE',
-        title: 'Move — Route Intelligence',
-        guidance: 'Evaluate walking paths with open venues, daylight estimates, and street-level imagery.',
-        actionPill: { label: 'Explore Route Corridors', targetScreen: 'MoveScreen' },
-      });
+      reply = 'ResQ evaluates street lighting density, open commercial amenities, and solar daylight for safe pedestrian navigation.';
+      pill = { label: 'Explore Safe Route (Move)', targetScreen: 'ExploreScreen' };
     }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `a_${Date.now()}`,
+        role: 'assistant',
+        text: reply,
+        engine: 'local-rules',
+        actionPill: pill,
+      },
+    ]);
   };
 
-  const handleActionClick = () => {
-    if (!result) return;
-    if (result.isEmergency) {
-      Linking.openURL('tel:112');
+  const handleActionPill = (pill: NonNullable<ChatMessage['actionPill']>) => {
+    if (pill.targetScreen === 'DIALER' || pill.phone) {
+      Linking.openURL('tel:112').catch(() => {});
       return;
     }
-    if (result.intent === 'ACT') {
-      onNavigateToTab('act', result.actionPill?.initialPayload);
-    } else if (result.intent === 'PROTECT') {
-      onNavigateToTab('protect', result.actionPill?.initialPayload);
+    if (pill.targetScreen === 'ActScreen') {
+      onClose();
+      onNavigateToTab('act', pill.initialPayload);
+    } else if (pill.targetScreen === 'ProtectScreen') {
+      onClose();
+      onNavigateToTab('protect', pill.initialPayload);
     } else {
-      onNavigateToTab('move');
+      onClose();
+      onNavigateToTab('move', pill.initialPayload);
     }
-    onClose();
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
           <View>
-            <Text style={styles.headerTitle}>AI Safety Navigator</Text>
-            <Text style={styles.headerSubtitle}>Cross-module guidance & triage</Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>AI Safety Assistant</Text>
+              <View style={[styles.modelBadge, { backgroundColor: theme.primaryLight, borderColor: theme.primary }]}>
+                <Text style={[styles.modelBadgeText, { color: theme.primary }]}>GEMINI 2.5 FLASH</Text>
+              </View>
+            </View>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+              Generative decision-support, legal triage and safety advice
+            </Text>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>✕</Text>
+          <TouchableOpacity
+            style={[styles.closeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={[styles.closeBtnText, { color: theme.text }]}>Done</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          {/* Input Box */}
-          <View style={styles.searchBox}>
-            <TextInput
-              style={styles.input}
-              placeholder="What situation or problem are you facing?"
-              placeholderTextColor="#64748B"
-              value={query}
-              onChangeText={setQuery}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              style={[styles.submitBtn, !query.trim() && styles.submitBtnDisabled]}
-              onPress={() => handleTriage()}
-              disabled={!query.trim() || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Ask Navigator →</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick Example Chips */}
-          <Text style={styles.sectionLabel}>OR SELECT A SITUATION TO EVALUATE:</Text>
-          <View style={styles.chipsRow}>
-            {suggestedPrompts.map((prompt, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.chip}
-                onPress={() => {
-                  setQuery(prompt);
-                  handleTriage(prompt);
-                }}
-              >
-                <Text style={styles.chipText}>{prompt}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Result Card */}
-          {result && (
+        {/* Chat Thread */}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.chatScroll}
+          contentContainerStyle={styles.chatScrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {messages.map((m) => (
             <View
+              key={m.id}
               style={[
-                styles.resultCard,
-                result.isEmergency && styles.resultCardEmergency,
+                styles.messageRow,
+                m.role === 'user' ? styles.userMessageRow : styles.assistantMessageRow,
               ]}
             >
-              <View style={styles.resultBadgeRow}>
-                <View
+              <View
+                style={[
+                  styles.messageBubble,
+                  m.role === 'user'
+                    ? [styles.userBubble, { backgroundColor: theme.primary }]
+                    : [styles.assistantBubble, { backgroundColor: theme.card, borderColor: theme.border }],
+                ]}
+              >
+                {m.role === 'assistant' && (
+                  <View style={styles.assistantHeaderRow}>
+                    <Text style={[styles.assistantLabel, { color: theme.primary }]}>
+                      RESQ AI ASSISTANT
+                    </Text>
+                    {m.engine && (
+                      <Text style={[styles.engineText, { color: theme.textMuted }]}>
+                        [{m.engine.toUpperCase()}]
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <Text
                   style={[
-                    styles.intentBadge,
-                    result.isEmergency && styles.intentBadgeEmergency,
+                    styles.messageText,
+                    m.role === 'user' ? styles.userMessageText : [styles.assistantMessageText, { color: theme.text }],
                   ]}
                 >
-                  <Text style={styles.intentBadgeText}>
-                    {result.isEmergency ? '🚨 EMERGENCY PRIORITY' : `PILLAR: ${result.intent}`}
+                  {m.text}
+                </Text>
+
+                {/* Interactive Action Pill */}
+                {m.actionPill && (
+                  <TouchableOpacity
+                    style={[styles.actionPillBtn, { backgroundColor: theme.primaryLight, borderColor: theme.primary }]}
+                    onPress={() => handleActionPill(m.actionPill!)}
+                  >
+                    <Text style={[styles.actionPillText, { color: theme.primary }]}>
+                      {m.actionPill.label} &gt;
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ))}
+
+          {isLoading && (
+            <View style={styles.assistantMessageRow}>
+              <View style={[styles.messageBubble, styles.assistantBubble, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                  <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+                    Analyzing guidance with Gemini...
                   </Text>
                 </View>
               </View>
-
-              <Text style={styles.resultTitle}>{result.title}</Text>
-              <Text style={styles.resultGuidance}>{result.guidance}</Text>
-
-              {result.actionPill && (
-                <TouchableOpacity
-                  style={[
-                    styles.actionBtn,
-                    result.isEmergency && styles.actionBtnEmergency,
-                  ]}
-                  onPress={handleActionClick}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.actionBtnText}>
-                    {result.actionPill.label} →
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              <Text style={styles.disclaimerText}>
-                vyshuuu is an informational decision-support assistant. Does not provide legal advice or guarantee physical safety.
-              </Text>
             </View>
           )}
         </ScrollView>
+
+        {/* Suggested Prompts */}
+        <View style={[styles.promptsContainer, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <Text style={[styles.promptsHeader, { color: theme.textMuted }]}>QUICK SCENARIOS:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promptsScroll}>
+            {suggestedPrompts.map((p, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.promptChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => handleSendMessage(p)}
+              >
+                <Text style={[styles.promptChipText, { color: theme.textSecondary }]}>{p}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Input Bar */}
+        <View style={[styles.inputBar, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
+            placeholder="Ask safety assistant or describe incident..."
+            placeholderTextColor={theme.textMuted}
+            value={inputText}
+            onChangeText={setInputText}
+            onSubmitEditing={() => handleSendMessage()}
+            returnKeyType="send"
+            multiline={false}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              { backgroundColor: inputText.trim() ? theme.primary : theme.surface },
+            ]}
+            onPress={() => handleSendMessage()}
+            disabled={!inputText.trim() || isLoading}
+          >
+            <Text
+              style={[
+                styles.sendButtonText,
+                { color: inputText.trim() ? '#FFFFFF' : theme.textMuted },
+              ]}
+            >
+              Send
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -231,161 +321,171 @@ export const NavigatorModal: React.FC<NavigatorModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
   },
   header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    color: '#F8FAFC',
     fontSize: 18,
     fontWeight: '700',
   },
+  modelBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  modelBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   headerSubtitle: {
-    color: '#94A3B8',
     fontSize: 12,
     marginTop: 2,
   },
   closeBtn: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  closeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  chatScroll: {
+    flex: 1,
+  },
+  chatScrollContent: {
+    padding: 16,
+    gap: 12,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    marginVertical: 4,
+  },
+  userMessageRow: {
+    justifyContent: 'flex-end',
+  },
+  assistantMessageRow: {
+    justifyContent: 'flex-start',
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  userBubble: {
+    borderBottomRightRadius: 2,
+  },
+  assistantBubble: {
+    borderWidth: 1,
+    borderBottomLeftRadius: 2,
+  },
+  assistantHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  assistantLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  engineText: {
+    fontSize: 9,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  userMessageText: {
+    color: '#FFFFFF',
+  },
+  assistantMessageText: {},
+  actionPillBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  actionPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+  },
+  promptsContainer: {
+    borderTopWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  promptsHeader: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  promptsScroll: {
+    flexDirection: 'row',
+  },
+  promptChip: {
+    borderWidth: 1,
     borderRadius: 20,
-    width: 36,
-    height: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  promptChipText: {
+    fontSize: 11,
+  },
+  inputBar: {
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    alignItems: 'center',
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  sendButton: {
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeBtnText: {
-    color: '#E2E8F0',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  searchBox: {
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    marginBottom: 16,
-  },
-  input: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  submitBtn: {
-    backgroundColor: '#38BDF8',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#334155',
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    color: '#090D16',
-    fontWeight: '700',
+  sendButtonText: {
     fontSize: 13,
-  },
-  sectionLabel: {
-    color: '#64748B',
-    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  chipsRow: {
-    gap: 8,
-    marginBottom: 20,
-  },
-  chip: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  chipText: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  resultCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-    marginTop: 8,
-  },
-  resultCardEmergency: {
-    backgroundColor: '#2A0812',
-    borderColor: '#E11D48',
-  },
-  resultBadgeRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  intentBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  intentBadgeEmergency: {
-    backgroundColor: 'rgba(225, 29, 72, 0.25)',
-  },
-  intentBadgeText: {
-    color: '#38BDF8',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  resultTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  resultGuidance: {
-    color: '#CBD5E1',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  actionBtn: {
-    backgroundColor: '#38BDF8',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionBtnEmergency: {
-    backgroundColor: '#E11D48',
-  },
-  actionBtnText: {
-    color: '#090D16',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  disclaimerText: {
-    color: '#64748B',
-    fontSize: 10,
-    lineHeight: 14,
-    fontStyle: 'italic',
   },
 });
-

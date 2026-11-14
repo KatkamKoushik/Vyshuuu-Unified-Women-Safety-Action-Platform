@@ -26,7 +26,7 @@ describe('Geospatial Gateway Backend (packages/server)', () => {
       assert.equal(response.statusCode, 200);
       const data = JSON.parse(response.payload);
       assert.equal(data.status, 'ok');
-      assert.equal(data.service, 'vyshuuu Geospatial Gateway');
+      assert.equal(data.service, 'ResQ Geospatial Gateway');
       assert.equal(typeof data.uptime, 'number');
     });
 

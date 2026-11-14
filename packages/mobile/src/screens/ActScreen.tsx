@@ -28,6 +28,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
+import { readAndHashFile } from '../services/evidenceHasher';
 
 interface ActScreenProps {
   initialStatement?: string;
@@ -66,9 +67,10 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       uri: string;
       digestHex: string;
       mimeType: string;
-      digestType: 'FILE_CONTENT_SHA256' | 'METADATA_REFERENCE_SHA256';
+      digestType: 'FILE_CONTENT_SHA256' | 'METADATA_CHECKSUM' | 'METADATA_REFERENCE_SHA256';
     }>
   >([]);
+  const [clarificationAnswers, setClarificationAnswers] = useState<Record<string, string>>({});
 
   const handlePickEvidenceFile = async () => {
     try {
@@ -78,19 +80,19 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        const digest = hashSha256(`${asset.name}:${asset.size || 0}:${Date.now()}`);
+        const hashed = await readAndHashFile(asset.uri, asset.name, asset.size);
         setAttachedFiles((prev) => [
           ...prev,
           {
             name: asset.name,
-            sizeBytes: asset.size || 0,
+            sizeBytes: hashed.byteCount,
             uri: asset.uri,
-            digestHex: digest,
+            digestHex: hashed.hash,
             mimeType: asset.mimeType || 'image/jpeg',
-            digestType: 'FILE_CONTENT_SHA256',
+            digestType: hashed.integrityType,
           },
         ]);
-        Alert.alert('Evidence Attached', `File "${asset.name}" attached with SHA-256 integrity digest.`);
+        Alert.alert('Evidence Hashed', `${hashed.label}\nSHA-256: ${hashed.hash.slice(0, 24)}...`);
       }
     } catch {
       Alert.alert('Attachment Notice', 'Could not open document picker on this device.');
@@ -307,6 +309,10 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       rawNarrative: narrative.trim(),
       priorSteps: priorSteps.trim(),
       reliefRequested: relief.trim() || 'Immediate remediation and safety audit.',
+      clarificationAnswers: Object.entries(clarificationAnswers).map(([qid, ans]) => ({
+        question: intakeData?.clarifyingQuestions?.find((q: any) => q.id === qid)?.question || qid,
+        answer: ans.trim(),
+      })).filter((item) => item.answer.length > 0),
       evidenceItems: attachedFiles.map((f) => ({
         name: f.name,
         type: f.mimeType,
@@ -639,11 +645,19 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
 
             <View style={styles.divider} />
 
-            <Text style={styles.sectionHeader}>KEY VERIFICATION QUESTIONS (PRE-FLIGHT):</Text>
+            <Text style={styles.sectionHeader}>ADAPTIVE VERIFICATION QUESTIONS (PROVIDE ANSWERS):</Text>
             {intakeData.clarifyingQuestions?.map((q: any) => (
               <View key={q.id} style={styles.qCard}>
                 <Text style={styles.qText}>{q.question}</Text>
-                <Text style={styles.qPurpose}>Purpose: {q.purpose}</Text>
+                <Text style={styles.qPurpose}>Factual context: {q.purpose}</Text>
+                <TextInput
+                  style={styles.qAnswerInput}
+                  placeholder="Type your response to this question..."
+                  placeholderTextColor="#64748B"
+                  value={clarificationAnswers[q.id] || ''}
+                  onChangeText={(txt) => setClarificationAnswers((prev) => ({ ...prev, [q.id]: txt }))}
+                  multiline
+                />
               </View>
             ))}
 
@@ -920,7 +934,7 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       {/* Ground Truth Disclaimer */}
       <View style={styles.disclaimerContainer}>
         <Text style={styles.disclaimerText}>
-          Draft generated for your review. vyshuuu does not provide legal advice, guarantee administrative outcomes,
+          Draft generated for your review. ResQ does not provide legal advice, guarantee administrative outcomes,
           or submit reports automatically. You retain sole authority to review and manually submit this documentation.
         </Text>
       </View>
@@ -1178,6 +1192,18 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 11,
     marginTop: 2,
+  },
+  qAnswerInput: {
+    marginTop: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    color: '#FFFFFF',
+    fontSize: 13,
+    minHeight: 48,
   },
   btnRow: {
     flexDirection: 'row',

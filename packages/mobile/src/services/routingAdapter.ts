@@ -2,7 +2,7 @@
  * @module routingAdapter
  * @description Pluggable pedestrian routing adapter interface and implementation.
  * 
- * Supports both vyshuuu Geospatial Gateway (with request deduplication and caching)
+ * Supports both ResQ Geospatial Gateway (with request deduplication and caching)
  * and direct OpenStreetMap OSRM failover.
  */
 
@@ -43,10 +43,10 @@ export const GATEWAY_BASE_URL =
  */
 export class GatewayRoutingProvider implements IRoutingProvider {
   public readonly metadata: RoutingProviderMetadata = {
-    id: 'vyshuuu-gateway',
-    name: 'vyshuuu Gateway (Fastify + Cache)',
+    id: 'resq-gateway',
+    name: 'ResQ Gateway (Fastify + Cache)',
     isDevelopmentProvider: false,
-    attribution: 'Route data © OpenStreetMap contributors, vyshuuu Gateway',
+    attribution: 'Route data © OpenStreetMap contributors, ResQ Gateway',
     termsUrl: 'https://operations.osmfoundation.org/policies/routing/',
   };
 

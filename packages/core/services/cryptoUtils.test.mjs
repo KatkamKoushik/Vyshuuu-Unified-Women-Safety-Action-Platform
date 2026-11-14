@@ -54,6 +54,15 @@ describe('Cryptographic Integrity & NIST FIPS 180-4 SHA-256 Compliance', () => {
     }
   });
 
+  it('proves avalanche effect: altering one byte completely changes digest', () => {
+    const originalBytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello"
+    const flippedBytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6e]); // "Helln" (1 bit change)
+    const hash1 = pureJsSha256(originalBytes);
+    const hash2 = pureJsSha256(flippedBytes);
+    assert.notEqual(hash1, hash2);
+    assert.equal(hash1, '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969');
+  });
+
   it('throws on null or undefined input', () => {
     assert.throws(() => hashSha256(null), /cannot be null/);
     assert.throws(() => hashSha256(undefined), /cannot be null/);

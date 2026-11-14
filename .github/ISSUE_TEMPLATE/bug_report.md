@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help us improve vyshuuu
+about: Create a report to help us improve ResQ
 title: '[BUG] '
 labels: 'bug'
 assignees: ''

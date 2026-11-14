@@ -1,7 +1,7 @@
 import { hashSha256 } from './cryptoUtils.js';
 /**
  * @module protectEngine
- * @description Core analytical engine for Protect module (vyshuuu).
+ * @description Core analytical engine for Protect module (ResQ).
  * Provides temporal event graph construction, multi-channel pattern detection,
  * evidence vault integrity hashing, and voluntary digital exposure auditing.
  */
@@ -9,7 +9,7 @@ import { hashSha256 } from './cryptoUtils.js';
 // cross-platform hash handling
 
 export const PROTECT_DISCLAIMER =
-  'vyshuuu Protect organizes contemporaneous records and identifies behavioral patterns for documentation. ' +
+  'ResQ Protect organizes contemporaneous records and identifies behavioral patterns for documentation. ' +
   'It does not make legal determinations of guilt, provide law enforcement surveillance, or replace ' +
   'formal investigative authorities.';
 export const STALKLEDGER_DISCLAIMER = PROTECT_DISCLAIMER;

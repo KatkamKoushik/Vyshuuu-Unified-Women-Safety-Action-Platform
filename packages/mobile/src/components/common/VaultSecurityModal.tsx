@@ -19,7 +19,7 @@ interface VaultSecurityModalProps {
   title?: string;
 }
 
-const PIN_SALT = 'vyshuuu_vault_v1_salt_9f8e7d';
+const PIN_SALT = 'resq_vault_v1_salt_9f8e7d';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 30;
 

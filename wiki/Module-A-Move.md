@@ -1,14 +1,14 @@
-# Module A — Move (Pedestrian Route Intelligence)
+﻿# Module A — Move (Pedestrian Route Intelligence)
 
 ## Overview
 
-**Move** provides transparent, explainable contextual information along walking routes. Rather than computing opaque, subjective "safety scores", vyshuuu measures verifiable **Route Context Coverage** (0 to 100%) and generates auditable **Route Context Intelligence**.
+**Move** provides transparent, explainable contextual information along walking routes. Rather than computing opaque, subjective "safety scores", ResQ measures verifiable **Route Context Coverage** (0 to 100%) and generates auditable **Route Context Intelligence**.
 
 ---
 
 ## 1. Mathematical Decoupling: Data Availability vs. Daylight
 
-In early iterations, data coverage scoring mixed mapped features with astronomical daylight, causing an identical mapped street to receive a much lower score at night. In `vyshuuu`, this is strictly decoupled:
+In early iterations, data coverage scoring mixed mapped features with astronomical daylight, causing an identical mapped street to receive a much lower score at night. In `ResQ`, this is strictly decoupled:
 
 $$\text{Total Context Coverage} = \text{Amenity Score (max 50)} + \text{Imagery Score (max 50)}$$
 
@@ -43,7 +43,7 @@ When a user searches for a route, the routing engine (OSRM Foot) returns multipl
 
 ## 3. Multi-Point Polyline Imagery Sampling
 
-Legacy implementations only checked for street-level photos within 100 meters of the origin. In `vyshuuu`, `useStreetImagery.ts` samples multiple points along the complete route polyline:
+Legacy implementations only checked for street-level photos within 100 meters of the origin. In `ResQ`, `useStreetImagery.ts` samples multiple points along the complete route polyline:
 * Start point (origin)
 * Midpoint ($50\%$ along the route polyline)
 * Destination point

@@ -43,7 +43,7 @@ export async function registerExportRoutes(fastify: FastifyInstance) {
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `vyshuuu_grievance_${authorityCode || 'STATUTORY'}_${timestamp}.md`;
+      const filename = `resq_grievance_${authorityCode || 'STATUTORY'}_${timestamp}.md`;
 
       const manifestChecksum = crypto
         .createHash('sha256')
@@ -51,7 +51,7 @@ export async function registerExportRoutes(fastify: FastifyInstance) {
         .digest('hex');
 
       const fileHeader =
-        `<!-- VYSHUUU FORMAL GRIEVANCE EXPORT BUNDLE -->\n` +
+        `<!-- RESQ FORMAL GRIEVANCE EXPORT BUNDLE -->\n` +
         `<!-- Generated: ${new Date().toISOString()} -->\n` +
         `<!-- SHA-256 Package Integrity: ${manifestChecksum} -->\n` +
         `<!-- Disclaimer: ${DRAFTSMAN_DISCLAIMER} -->\n\n`;
@@ -83,7 +83,7 @@ export async function registerExportRoutes(fastify: FastifyInstance) {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `vyshuuu_incident_manifest_${timestamp}.json`;
+    const filename = `resq_incident_manifest_${timestamp}.json`;
 
     const manifestPayload = {
       exportVersion: '1.0.0',

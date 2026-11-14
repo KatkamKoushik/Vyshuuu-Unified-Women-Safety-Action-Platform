@@ -9,7 +9,7 @@ interface TriageRequestBody {
 }
 
 export const NAVIGATOR_DISCLAIMER =
-  'vyshuuu is an informational decision-support assistant. In life-threatening emergencies, ' +
+  'ResQ is an informational decision-support assistant. In life-threatening emergencies, ' +
   'always contact official emergency services (112) or campus security immediately.';
 
 export async function registerNavigatorRoutes(fastify: FastifyInstance) {
@@ -110,6 +110,43 @@ export async function registerNavigatorRoutes(fastify: FastifyInstance) {
           label: 'Explore Walking Routes',
           targetScreen: 'MoveScreen',
         },
+        disclaimer: NAVIGATOR_DISCLAIMER,
+      });
+    }
+  );
+
+  // Conversational AI Safety Assistant Chat Endpoint
+  fastify.post(
+    '/api/v1/navigator/chat',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      let msgs = request.body?.messages;
+      if (!msgs && (request.body as any)?.message) {
+        msgs = [{ role: 'user', content: String((request.body as any).message) }];
+      }
+      if (!Array.isArray(msgs) || msgs.length === 0) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'messages array or message string is required',
+          code: 'INVALID_INPUT',
+        });
+      }
+
+      const { dynamicChatAssistant } = await import('../services/geminiClient.js');
+      const startTime = Date.now();
+      const result = await dynamicChatAssistant(msgs);
+      const latencyMs = Date.now() - startTime;
+
+      return reply.send({
+        ok: true,
+        ...result,
+        latencyMs,
         disclaimer: NAVIGATOR_DISCLAIMER,
       });
     }

@@ -118,7 +118,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
   const handleDialNumber = (number: string, title: string) => {
     Alert.alert(
       `Call ${title} (${number})`,
-      `This will open your phone dialer to call ${number}. vyshuuu never places calls silently.`,
+      `This will open your phone dialer to call ${number}. ResQ never places calls silently.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -168,7 +168,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
         locationText = `Location: GPS unavailable at time of dispatch.`;
       }
 
-      const sosMessage = `🚨 EMERGENCY SOS from vyshuuu: I need immediate assistance.\n${locationText}\nSent at: ${timestamp}`;
+      const sosMessage = `[EMERGENCY SOS from ResQ]: I need immediate assistance.\n${locationText}\nSent at: ${timestamp}`;
 
       if (contacts.length === 0) {
         Alert.alert(

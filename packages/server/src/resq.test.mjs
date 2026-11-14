@@ -2,7 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildServer } from '../dist/server.js';
 
-describe('vyshuuu Unified Backend Endpoints', () => {
+describe('ResQ Unified Backend Endpoints', () => {
   let app;
 
   before(async () => {
@@ -27,7 +27,7 @@ describe('vyshuuu Unified Backend Endpoints', () => {
       assert.ok(data.authorities.UGC_SAMADHAAN);
       assert.ok(data.authorities.FSSAI_FOSCOS);
       assert.ok(data.authorities.CYBERCRIME_INDIA);
-      assert.ok(data.disclaimer.includes('vyshuuu does not provide legal advice'));
+      assert.ok(data.disclaimer.includes('ResQ does not provide legal advice'));
 
       // Backward compatible alias
       const aliasRes = await app.inject({
@@ -223,7 +223,7 @@ describe('vyshuuu Unified Backend Endpoints', () => {
       assert.equal(res.statusCode, 200);
       const data = JSON.parse(res.payload);
       assert.equal(data.ok, true);
-      assert.ok(data.filename.startsWith('vyshuuu_grievance_UGC_SAMADHAAN_'));
+      assert.ok(data.filename.startsWith('resq_grievance_UGC_SAMADHAAN_'));
       assert.equal(data.mimeType, 'text/markdown');
       assert.ok(data.fileContent.includes('<!-- SHA-256 Package Integrity:'));
       assert.equal(data.packageChecksum.length, 64);
@@ -251,7 +251,7 @@ describe('vyshuuu Unified Backend Endpoints', () => {
       assert.equal(res.statusCode, 200);
       const data = JSON.parse(res.payload);
       assert.equal(data.ok, true);
-      assert.ok(data.filename.startsWith('vyshuuu_incident_manifest_'));
+      assert.ok(data.filename.startsWith('resq_incident_manifest_'));
       assert.equal(data.mimeType, 'application/json');
       assert.equal(data.manifestChecksum.length, 64);
       assert.ok(data.fileContent.includes('@anon_watcher'));

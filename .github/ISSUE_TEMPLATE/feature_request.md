@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea or capability for vyshuuu
+about: Suggest an idea or capability for ResQ
 title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''

@@ -21,8 +21,11 @@ import { QuickExitBar } from './src/components/common/QuickExitBar';
 import { CalculatorDisguiseModal } from './src/components/common/CalculatorDisguiseModal';
 import { NavigatorModal } from './src/components/common/NavigatorModal';
 import { EmergencySosModal } from './src/components/common/EmergencySosModal';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 
-export default function App() {
+function MainAppContent() {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<ActiveTab>('explore');
   const [showSettings, setShowSettings] = useState(false);
   const [showDisguise, setShowDisguise] = useState(false);
@@ -128,8 +131,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={[styles.rootContainer, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
 
       {/* Quick Exit, Brand & Emergency Bar */}
       <QuickExitBar
@@ -139,7 +142,7 @@ export default function App() {
       />
 
       {/* Screen Body Router */}
-      <View style={styles.screenContainer}>
+      <View style={[styles.screenContainer, { backgroundColor: theme.bg }]}>
         {activeTab === 'explore' && (
           <ExploreScreen
             origin={origin}
@@ -252,10 +255,19 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <MainAppContent />
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: '#090D16',
   },
   screenContainer: {
     flex: 1,

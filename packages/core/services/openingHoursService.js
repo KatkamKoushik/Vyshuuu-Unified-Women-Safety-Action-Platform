@@ -238,7 +238,7 @@ export function evaluateOpeningHours(rawOpeningHours, targetDate = new Date(), t
   }
 
   // Reject unsupported complex OSM opening_hours grammar (astronomical, holiday offsets, date-specific, week offsets)
-  // vyshuuu is an honest partial parser; unsupported expressions strictly return 'UNKNOWN' rather than guessing.
+  // ResQ is an honest partial parser; unsupported expressions strictly return 'UNKNOWN' rather than guessing.
   if (
     /\b(PH|SH|sunrise|sunset|dusk|dawn|Easter)\b/i.test(raw) ||
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(raw) ||

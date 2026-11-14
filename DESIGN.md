@@ -1,4 +1,4 @@
-# vyshuuu Native Mobile Design System (DESIGN.md)
+# ResQ Native Mobile Design System (DESIGN.md)
 *Standard: Google Stitch Semantic Design Specification & UI/UX Pro Max Native Ergonomics*
 *Stack: React Native 0.88 / Expo 58 / TypeScript / MapLibre Native*
 
@@ -6,7 +6,7 @@
 
 ## 1. Visual Atmosphere & Aesthetic Philosophy
 
-vyshuuu is a privacy-first pedestrian route context companion. Its design ethos reflects precision cartography, astronomical daylight calculations, and explainable route-context information.
+ResQ is a privacy-first pedestrian route context companion. Its design ethos reflects precision cartography, astronomical daylight calculations, and explainable route-context information.
 - **Aesthetic Direction:** Spatial Cartographic Dark Mode (Optimized for OLED outdoor visibility).
 - **Density:** Balanced Mobile Utility (Density 5/10). No cramped desktop-like sidebars; ample breathing room with thumb-reachable interactive nodes.
 - **Atmosphere:** Deep Space Obsidian (`#090D16`) with Luminescent Neon Vector Paths (`#38BDF8`), Primary Electric Blue (`#0284C7`), Amber Context (`#F59E0B`), and Slate Cards (`#1E293B`).

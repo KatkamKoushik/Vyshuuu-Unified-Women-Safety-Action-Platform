@@ -149,7 +149,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       {React.createElement('iframe', {
         srcDoc: mapHtml,
         style: styles.webIframe,
-        title: 'vyshuuu Map Viewport',
+        title: 'ResQ Map Viewport',
       })}
     </View>
   );

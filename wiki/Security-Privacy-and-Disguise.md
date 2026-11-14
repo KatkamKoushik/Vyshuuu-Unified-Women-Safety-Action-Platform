@@ -1,8 +1,8 @@
-# Security, Privacy & Threat Defense Architecture
+﻿# Security, Privacy & Threat Defense Architecture
 
 ## Overview
 
-The `vyshuuu` platform is built with a defense-in-depth security model specifically tailored to women experiencing digital surveillance, abusive roommates, or physical vulnerability.
+The `ResQ` platform is built with a defense-in-depth security model specifically tailored to women experiencing digital surveillance, abusive roommates, or physical vulnerability.
 
 ---
 

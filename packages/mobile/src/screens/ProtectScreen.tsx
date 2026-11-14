@@ -26,6 +26,7 @@ import {
 } from '@walking-companion/core';
 import * as DocumentPicker from 'expo-document-picker';
 import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
+import { readAndHashFile } from '../services/evidenceHasher';
 
 interface ProtectScreenProps {
   initialText?: string;
@@ -70,23 +71,27 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        const digest = hashSha256(`${asset.name}:${asset.size || 0}:${Date.now()}`);
+        const hashed = await readAndHashFile(asset.uri, asset.name, asset.size);
         setAttachedFile({
           name: asset.name,
-          sizeBytes: asset.size || 0,
+          sizeBytes: hashed.byteCount,
           uri: asset.uri,
-          digestHex: digest,
+          digestHex: hashed.hash,
         });
-        setNewEvidenceRef(asset.name);
-        Alert.alert('File Attached', `Attached "${asset.name}" with SHA-256 digest: ${digest.slice(0, 16)}...`);
+        setNewEvidenceRef(`File: ${asset.name} (${hashed.integrityType}: ${hashed.hash.slice(0, 16)}...)`);
+        Alert.alert('Evidence Hashed', `${hashed.label}\nSHA-256: ${hashed.hash.slice(0, 24)}...`);
       }
     } catch {
       Alert.alert('Attachment Notice', 'Could not open document picker on this device.');
     }
   };
 
-  // Load real incidents from on-device SQLite database
+  // Load real incidents from on-device SQLite database strictly gated by vault PIN
   const loadIncidents = useCallback(async () => {
+    if (!isVaultUnlocked) {
+      setIncidents([]);
+      return;
+    }
     try {
       setIsLoadingIncidents(true);
       const items = await getSavedIncidents();
@@ -96,11 +101,15 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
     } finally {
       setIsLoadingIncidents(false);
     }
-  }, []);
+  }, [isVaultUnlocked]);
 
   useEffect(() => {
-    loadIncidents();
-  }, [loadIncidents]);
+    if (isVaultUnlocked) {
+      loadIncidents();
+    } else {
+      setIncidents([]);
+    }
+  }, [isVaultUnlocked, loadIncidents]);
 
   useEffect(() => {
     if (initialText) {
@@ -145,7 +154,9 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       };
 
       await saveIncident(record);
-      await loadIncidents();
+      if (isVaultUnlocked) {
+        await loadIncidents();
+      }
 
       setNewSender('');
       setNewMessage('');
@@ -178,11 +189,11 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       })
       .join('\n\n');
 
-    const manifestText = `VYSHUUU CONTEMPORANEOUS INCIDENT MANIFEST\nIntegrity: Cryptographically Hashed (SHA-256)\nTotal Logged Incidents: ${incidents.length}\nExport Date: ${new Date().toISOString()}\nStorage: On-Device SQLite (Zero Cloud Telemetry)\n========================================\n\n${itemsText}\n\nNotice: This contemporaneous log constitutes evidentiary record under statutory standards.`;
+    const manifestText = `RESQ CONTEMPORANEOUS INCIDENT MANIFEST\nIntegrity: Cryptographically Hashed (SHA-256)\nTotal Logged Incidents: ${incidents.length}\nExport Date: ${new Date().toISOString()}\nStorage: On-Device SQLite (Zero Cloud Telemetry)\n========================================\n\n${itemsText}\n\nNotice: This contemporaneous log constitutes evidentiary record under statutory standards.`;
 
     try {
       await Share.share({
-        title: 'vyshuuu Contemporaneous Incident Manifest',
+        title: 'ResQ Contemporaneous Incident Manifest',
         message: manifestText,
       });
     } catch {
@@ -294,7 +305,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
           onPress={() => setActiveSubTab('timeline')}
         >
           <Text style={[styles.switchBtnText, activeSubTab === 'timeline' && styles.switchBtnTextActive]}>
-            Incident Timeline ({incidents.length})
+            {isVaultUnlocked ? `Incident Timeline (${incidents.length})` : 'Incident Vault'}
           </Text>
         </TouchableOpacity>
 
@@ -325,7 +336,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                   accessibilityRole="button"
                   accessibilityLabel="Export incident ledger manifest"
                 >
-                  <Text style={styles.exportBtnText}>Export 📤</Text>
+                  <Text style={styles.exportBtnText}>Export</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -336,7 +347,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                 {isAnalyzing ? (
                   <ActivityIndicator size="small" color="#090D16" />
                 ) : (
-                  <Text style={styles.analyzeBtnText}>Analyze ⚡</Text>
+                  <Text style={styles.analyzeBtnText}>Analyze</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -407,13 +418,13 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                 onChangeText={setNewEvidenceRef}
               />
               <TouchableOpacity style={styles.attachMiniBtn} onPress={handlePickEvidence}>
-                <Text style={styles.attachMiniBtnText}>📎 Attach</Text>
+                <Text style={styles.attachMiniBtnText}>Attach</Text>
               </TouchableOpacity>
             </View>
 
             {attachedFile && (
               <View style={styles.attachedFileBadge}>
-                <Text style={styles.attachedFileName} numberOfLines={1}>📎 {attachedFile.name}</Text>
+                <Text style={styles.attachedFileName} numberOfLines={1}>{attachedFile.name}</Text>
                 <Text style={styles.attachedFileMeta}>
                   {Math.round(attachedFile.sizeBytes / 1024)} KB • SHA-256: {attachedFile.digestHex.slice(0, 16)}...
                 </Text>
@@ -438,14 +449,13 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
             <Text style={styles.timelineHeader}>RECORDED INCIDENTS (CHRONOLOGICAL)</Text>
             {isVaultUnlocked && (
               <TouchableOpacity onPress={() => setIsVaultUnlocked(false)} style={styles.lockTimelineBtn}>
-                <Text style={styles.lockTimelineText}>Lock 🔒</Text>
+                <Text style={styles.lockTimelineText}>Lock Vault</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {!isVaultUnlocked ? (
             <View style={styles.lockedVaultCard}>
-              <Text style={styles.lockedVaultIcon}>🔒</Text>
               <Text style={styles.lockedVaultTitle}>Incident Vault Locked</Text>
               <Text style={styles.lockedVaultDesc}>
                 Harassment records and evidence references contain sensitive personal data.
@@ -456,14 +466,13 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                 onPress={() => setIsVaultModalVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.unlockVaultBtnText}>Unlock Incident Vault 🔓</Text>
+                <Text style={styles.unlockVaultBtnText}>Unlock Incident Vault</Text>
               </TouchableOpacity>
             </View>
           ) : isLoadingIncidents ? (
             <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 20 }} />
           ) : incidents.length === 0 ? (
             <View style={styles.emptyVaultCard}>
-              <Text style={styles.emptyVaultIcon}>🛡️</Text>
               <Text style={styles.emptyVaultTitle}>Incident Vault is Empty</Text>
               <Text style={styles.emptyVaultDesc}>
                 No incidents recorded on this device. Log unwanted messages, calls, or harassment above to calculate cryptographic SHA-256 evidence.
@@ -498,13 +507,13 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
 
                 {Boolean(inc.was_blocked_prior ?? (inc as any).wasBlockedPrior) && (
                   <View style={styles.blockWarning}>
-                    <Text style={styles.blockWarningText}>⚠️ Recorded after prior account block</Text>
+                    <Text style={styles.blockWarningText}>[FLAG] Recorded after prior account block</Text>
                   </View>
                 )}
 
                 {Boolean(inc.evidence_ref) && (
                   <View style={styles.evidenceRefBadge}>
-                    <Text style={styles.evidenceRefText}>📎 Evidence Ref: {inc.evidence_ref}</Text>
+                    <Text style={styles.evidenceRefText}>Evidence Ref: {inc.evidence_ref}</Text>
                   </View>
                 )}
 
@@ -548,7 +557,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
               {isAuditing ? (
                 <ActivityIndicator size="small" color="#090D16" />
               ) : (
-                <Text style={styles.auditActionBtnText}>Run Privacy Audit 🔍</Text>
+                <Text style={styles.auditActionBtnText}>Run Privacy Audit</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -587,7 +596,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       {/* Ground Truth Disclaimer */}
       <View style={styles.disclaimerContainer}>
         <Text style={styles.disclaimerText}>
-          vyshuuu Protect organizes contemporaneous records and identifies behavioral patterns for documentation.
+          ResQ Protect organizes contemporaneous records and identifies behavioral patterns for documentation.
           It does not make legal determinations of guilt or replace official law enforcement agencies.
         </Text>
       </View>

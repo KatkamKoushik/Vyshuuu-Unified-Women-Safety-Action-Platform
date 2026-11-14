@@ -1,15 +1,15 @@
-# Platform Architecture & Design
+﻿# Platform Architecture & Design
 
-> Technical architecture, subsystem contracts, and data-flow specifications for the **vyshuuu** unified women's safety platform.
+> Technical architecture, subsystem contracts, and data-flow specifications for the **ResQ** unified women's safety platform.
 
 ---
 
 ## 1. Monorepo Subsystem Topology
 
-vyshuuu is architected as an npm-workspaces monorepo designed for high-performance execution, zero cloud telemetry, and client-side resilience:
+ResQ is architected as an npm-workspaces monorepo designed for high-performance execution, zero cloud telemetry, and client-side resilience:
 
 ```text
-vyshuuu/
+ResQ/
 ├── packages/
 │   ├── core/                    # Shared TypeScript Domain & Algorithms Engine
 │   │   ├── domain/              # Authority registries, route interfaces, scoring

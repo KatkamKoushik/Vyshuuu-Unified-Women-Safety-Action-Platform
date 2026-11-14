@@ -276,7 +276,7 @@ export async function fetchCorridorAmenities(coordinates, options = {}) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'vyshuuu-Companion/2.0 (Women Safety & Mobility; https://vyshuuu.app)',
+          'User-Agent': 'ResQ-Companion/2.0 (Women Safety & Mobility; https://resq.app)',
         },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal,

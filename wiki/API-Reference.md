@@ -1,4 +1,4 @@
-# API Reference Specification
+﻿# API Reference Specification
 
 ## Overview
 
@@ -17,7 +17,7 @@ Returns gateway runtime metrics, uptime, cache statistics, and memory telemetry.
   ```json
   {
     "status": "ok",
-    "service": "vyshuuu Geospatial Gateway",
+    "service": "ResQ Geospatial Gateway",
     "version": "1.0.0",
     "uptime": 1420,
     "cacheEntries": 12,
@@ -82,7 +82,7 @@ Performs safety triage, emergency filter detection, and intent classification.
       "targetScreen": "ActScreen",
       "initialPayload": { "initialStatement": "..." }
     },
-    "disclaimer": "vyshuuu is an informational decision-support assistant..."
+    "disclaimer": "ResQ is an informational decision-support assistant..."
   }
   ```
 

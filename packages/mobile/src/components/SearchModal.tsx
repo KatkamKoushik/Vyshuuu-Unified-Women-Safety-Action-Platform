@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import type { LocationPoint } from '../services/geocodingService';
 import { getRecentSearches, RecentSearch, getSavedJourneys, SavedJourney } from '../services/storageService';
+import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SearchModalProps {
   visible: boolean;
@@ -43,6 +45,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   origin,
   destination,
 }) => {
+  const { theme } = useTheme();
+  const { t } = useLanguage();
   const [recentList, setRecentList] = useState<RecentSearch[]>([]);
   const [savedList, setSavedList] = useState<SavedJourney[]>([]);
 
@@ -123,12 +127,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       transparent={false}
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <View style={[styles.container, { backgroundColor: theme.bg }]}>
+        <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
 
         {/* Header & Close Affordance */}
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Choose Route Points</Text>
+          <Text style={[styles.modalTitle, { color: theme.text }]}>Choose Route Points</Text>
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={onClose}
@@ -136,16 +140,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             accessibilityLabel="Close search dialog"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={styles.closeBtnText}>Done</Text>
+            <Text style={[styles.closeBtnText, { color: theme.primary }]}>Done</Text>
           </TouchableOpacity>
         </View>
 
         {/* Target Segmented Switcher (Origin vs Destination) */}
-        <View style={styles.segmentedContainer}>
+        <View style={[styles.segmentedContainer, { backgroundColor: theme.surface }]}>
           <TouchableOpacity
             style={[
               styles.segmentItem,
-              searchTarget === 'origin' && styles.segmentItemActive,
+              searchTarget === 'origin' && [
+                styles.segmentItemActive,
+                { backgroundColor: theme.card, borderColor: theme.primary },
+              ],
             ]}
             onPress={() => setSearchTarget('origin')}
             accessibilityRole="button"
@@ -154,18 +161,22 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <Text
               style={[
                 styles.segmentText,
-                searchTarget === 'origin' && styles.segmentTextActive,
+                { color: theme.textSecondary },
+                searchTarget === 'origin' && [styles.segmentTextActive, { color: theme.text }],
               ]}
               numberOfLines={1}
             >
-              📍 Start: {origin ? origin.title : 'Select'}
+              Start: {origin ? origin.title : 'Select'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.segmentItem,
-              searchTarget === 'destination' && styles.segmentItemActive,
+              searchTarget === 'destination' && [
+                styles.segmentItemActive,
+                { backgroundColor: theme.card, borderColor: theme.primary },
+              ],
             ]}
             onPress={() => setSearchTarget('destination')}
             accessibilityRole="button"
@@ -174,23 +185,23 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <Text
               style={[
                 styles.segmentText,
-                searchTarget === 'destination' && styles.segmentTextActive,
+                { color: theme.textSecondary },
+                searchTarget === 'destination' && [styles.segmentTextActive, { color: theme.text }],
               ]}
               numberOfLines={1}
             >
-              🏁 End: {destination ? destination.title : 'Select'}
+              End: {destination ? destination.title : 'Select'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Search Bar Input */}
         <View style={styles.searchBarRow}>
-          <View style={styles.inputWrapper}>
-            <Text style={styles.searchIcon}>🔍</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <TextInput
-              style={styles.textInput}
-              placeholder={`Search ${searchTarget === 'origin' ? 'start' : 'destination'} address...`}
-              placeholderTextColor="#64748B"
+              style={[styles.textInput, { color: theme.text }]}
+              placeholder={`Search ${searchTarget === 'origin' ? 'start' : 'destination'} address or place...`}
+              placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
@@ -204,16 +215,44 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 accessibilityLabel="Clear search query"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.clearBtnText}>✕</Text>
+                <Text style={[styles.clearBtnText, { color: theme.textMuted }]}>✕</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
+        {/* Nearby Walking Essentials Pills */}
+        <View style={styles.essentialsRow}>
+          <TouchableOpacity
+            style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => setSearchQuery('park')}
+          >
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Park]</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => setSearchQuery('pharmacy')}
+          >
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Pharmacy]</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => setSearchQuery('metro')}
+          >
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Transit]</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => setSearchQuery('police')}
+          >
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Police]</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* GPS Current Location Action Button */}
         {searchTarget === 'origin' && (
           <TouchableOpacity
-            style={styles.gpsRow}
+            style={[styles.gpsRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => {
               onUseGps();
               onClose();
@@ -221,12 +260,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Use current GPS location"
           >
-            <View style={styles.gpsIconCircle}>
-              <Text style={styles.gpsIcon}>🎯</Text>
+            <View style={[styles.gpsIconCircle, { backgroundColor: theme.primary }]}>
+              <Text style={styles.gpsIcon}>GPS</Text>
             </View>
             <View style={styles.gpsTextGroup}>
-              <Text style={styles.gpsTitle}>Use Current Location</Text>
-              <Text style={styles.gpsSubtitle}>High-accuracy on-device GPS</Text>
+              <Text style={[styles.gpsTitle, { color: theme.text }]}>Use Current Location</Text>
+              <Text style={[styles.gpsSubtitle, { color: theme.textMuted }]}>High-accuracy on-device GPS</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -238,7 +277,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             keyExtractor={(item) => `${item.latitude}_${item.longitude}_${item.title}`}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.resultItem}
+                style={[styles.resultItem, { backgroundColor: theme.card, borderColor: theme.border }]}
                 onPress={() => {
                   onSelectResult(item);
                   if (searchTarget === 'origin') {
@@ -250,11 +289,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={`Select ${item.title}`}
               >
-                <Text style={styles.resultIcon}>📍</Text>
                 <View style={styles.resultTextWrapper}>
-                  <Text style={styles.resultTitle}>{item.title}</Text>
+                  <Text style={[styles.resultTitle, { color: theme.text }]}>{item.title}</Text>
                   {item.subtitle ? (
-                    <Text style={styles.resultSubtitle} numberOfLines={1}>
+                    <Text style={[styles.resultSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
                       {item.subtitle}
                     </Text>
                   ) : null}
@@ -286,10 +324,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       }
                     }}
                   >
-                    <Text style={styles.recentIcon}>🕒</Text>
+                    <Text style={[styles.recentTag, { color: theme.primary }]}>[REC]</Text>
                     <View style={styles.recentTextWrap}>
-                      <Text style={styles.recentTitle}>{r.display_name}</Text>
-                      <Text style={styles.recentSubtitle}>Query: {r.query}</Text>
+                      <Text style={[styles.recentTitle, { color: theme.text }]}>{r.display_name}</Text>
+                      <Text style={[styles.recentSubtitle, { color: theme.textMuted }]}>Query: {r.query}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -298,11 +336,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
             {savedList.length > 0 && (
               <View style={styles.savedSection}>
-                <Text style={styles.sectionHeading}>Saved Corridors (Vault)</Text>
+                <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Saved Corridors (Vault)</Text>
                 {savedList.slice(0, 3).map((s) => (
                   <TouchableOpacity
                     key={s.id}
-                    style={styles.savedItem}
+                    style={[styles.savedItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
                     onPress={() => {
                       onSelectPreset(
                         { title: s.origin_name, latitude: s.origin_lat, longitude: s.origin_lon },
@@ -311,10 +349,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       onClose();
                     }}
                   >
-                    <Text style={styles.savedIcon}>⭐</Text>
+                    <Text style={[styles.savedTag, { color: theme.primary }]}>[SAVED]</Text>
                     <View style={styles.savedTextWrap}>
-                      <Text style={styles.savedTitle}>{s.title}</Text>
-                      <Text style={styles.savedSubtitle}>
+                      <Text style={[styles.savedTitle, { color: theme.text }]}>{s.title}</Text>
+                      <Text style={[styles.savedSubtitle, { color: theme.textMuted }]}>
                         {(s.distance_m / 1000).toFixed(1)} km • {Math.ceil(s.duration_s / 60)} min walk
                       </Text>
                     </View>
@@ -411,7 +449,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   searchBarRow: {
-    marginBottom: 14,
+    marginBottom: 8,
+  },
+  essentialsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  essentialPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  essentialPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -525,6 +580,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',
   },
+  recentTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginRight: 10,
+    letterSpacing: 0.5,
+  },
   recentIcon: {
     fontSize: 16,
     marginRight: 10,
@@ -554,6 +615,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderWidth: 1,
     borderColor: 'rgba(2, 132, 199, 0.25)',
+  },
+  savedTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginRight: 10,
+    letterSpacing: 0.5,
   },
   savedIcon: {
     fontSize: 16,

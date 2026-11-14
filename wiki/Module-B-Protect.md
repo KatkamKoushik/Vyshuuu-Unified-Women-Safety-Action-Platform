@@ -1,4 +1,4 @@
-# Module B — Protect (Incident Vault & Exposure Audit)
+﻿# Module B — Protect (Incident Vault & Exposure Audit)
 
 ## Overview
 
@@ -8,7 +8,7 @@
 
 ## 1. Contemporaneous Evidence Vault with SHA-256 Hashes
 
-When a user receives unwanted communications across multiple social platforms (Instagram, WhatsApp, Telegram, SMS, phone calls), vyshuuu logs each incident locally with contemporaneous metadata:
+When a user receives unwanted communications across multiple social platforms (Instagram, WhatsApp, Telegram, SMS, phone calls), ResQ logs each incident locally with contemporaneous metadata:
 
 * Incident ID & ISO 8601 Timestamp
 * Platform name
@@ -40,7 +40,7 @@ The analytical engine (`protectEngine.js`) constructs an ordered temporal graph 
 | `LOCATION_AWARENESS` | Messages referencing campus gates, hostel wings, or room numbers. | *"Communications reference physical campus, residential, or routine locations."* |
 
 ### Ethical & Legal Guardrail
-vyshuuu strictly reports **objective factual patterns**. It never asserts criminal guilt or claims that two distinct handles belong to the same physical individual without law enforcement forensic proof.
+ResQ strictly reports **objective factual patterns**. It never asserts criminal guilt or claims that two distinct handles belong to the same physical individual without law enforcement forensic proof.
 
 ---
 

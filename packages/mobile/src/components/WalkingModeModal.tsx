@@ -65,7 +65,7 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
   const handleEmergencyCall = () => {
     Alert.alert(
       'Emergency Services',
-      'Launch the device dialer for standard emergency services (112 / regional emergency dispatch)?\n\nNotice: vyshuuu is an information tool and does not provide automated emergency dispatch or remote tracking.',
+      'Launch the device dialer for standard emergency services (112 / regional emergency dispatch)?\n\nNotice: ResQ is an information tool and does not provide automated emergency dispatch or remote tracking.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

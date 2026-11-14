@@ -1,6 +1,6 @@
-# Welcome to the vyshuuu Project Wiki
+﻿# Welcome to the ResQ Project Wiki
 
-> **vyshuuu** is an evidence-first, privacy-respecting women's safety and support platform combining explainable pedestrian route context intelligence (**Move**), cross-platform digital harassment documentation (**Protect**), and statutory grievance escalation (**Act**).
+> **ResQ** is an evidence-first, privacy-respecting women's safety and support platform combining explainable pedestrian route context intelligence (**Move**), cross-platform digital harassment documentation (**Protect**), and statutory grievance escalation (**Act**).
 
 ---
 
@@ -24,13 +24,13 @@
 ## Core Guiding Principles
 
 1. **Explainable Facts, Not Subjective "Safety Scores":**
-   vyshuuu never manufactures an artificial "women's safety score". It reports verifiable physical data—open storefronts at passing time, street lighting infrastructure, astronomical daylight, and road classifications—accompanied by explicit uncertainty disclosures.
+   ResQ never manufactures an artificial "women's safety score". It reports verifiable physical data—open storefronts at passing time, street lighting infrastructure, astronomical daylight, and road classifications—accompanied by explicit uncertainty disclosures.
 
 2. **Tamper-Evident Contemporaneous Evidence:**
    Every screenshot, message quote, and medical receipt is hashed with standard SHA-256 and chronologically indexed into verifiable annexures for administrative and legal proceedings.
 
 3. **Assisted Human Handoff vs. Illegal Bot Automation:**
-   Government portals strictly forbid automated headless bots and require citizen CAPTCHA / OTP verification. vyshuuu implements **Assisted Portal Handoff** using 1-tap clipboard pills and sandboxed browser sheets to ensure 100% compliance.
+   Government portals strictly forbid automated headless bots and require citizen CAPTCHA / OTP verification. ResQ implements **Assisted Portal Handoff** using 1-tap clipboard pills and sandboxed browser sheets to ensure 100% compliance.
 
 4. **Zero Cloud Telemetry & Absolute User Control:**
    User commute logs, saved corridors, incidents, and grievance drafts remain exclusively on-device in local SQLite storage. A single tap on the emergency panic button purges all records and executes SQLite `VACUUM`.

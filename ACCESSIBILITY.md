@@ -1,6 +1,6 @@
 # Accessibility Statement
 
-We are committed to making vyshuuu accessible and usable for all people, including those with visual, motor, auditory, or cognitive disabilities.
+We are committed to making ResQ accessible and usable for all people, including those with visual, motor, auditory, or cognitive disabilities.
 
 ## Accessibility Principles & Standards
 

@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for vyshuuu Geospatial Gateway
+# Multi-stage Dockerfile for ResQ Geospatial Gateway
 FROM node:22-alpine AS builder
 
 WORKDIR /app

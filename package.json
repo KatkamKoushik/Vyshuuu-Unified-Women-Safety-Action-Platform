@@ -1,7 +1,7 @@
 {
-  "name": "vyshuuu",
+  "name": "resq",
   "version": "1.0.0",
-  "description": "vyshuuu — Unified Women's Safety, Navigation & Statutory Action Platform",
+  "description": "ResQ — Unified Women's Safety, Navigation & Statutory Action Platform",
   "type": "module",
   "private": true,
   "workspaces": [
@@ -22,7 +22,7 @@
     "lint": "eslint packages/core packages/server"
   },
   "keywords": [
-    "vyshuuu",
+    "resq",
     "womens-safety",
     "pedestrian-navigation",
     "statutory-rights",

@@ -1,4 +1,4 @@
-# vyshuuu — Unified Women's Safety & Action Platform
+# ResQ — Unified Women's Safety & Action Platform
 ### *Move • Protect • Act*
 
 > **An evidence-first, privacy-respecting platform combining explainable pedestrian route intelligence (Move), cross-platform digital harassment documentation (Protect), and statutory grievance escalation (Act).**
@@ -31,7 +31,7 @@ Women and female university students in India navigate three interconnected safe
 2. **Persistent Online Harassment:** Cross-platform cyberstalking and unwanted contacts across Instagram, WhatsApp, and Telegram, where blocked accounts are repeatedly reconstituted and personal daily schedules are accidentally exposed via public social profiles.
 3. **Hazardous Living Conditions & Institutional Inaction:** Severe hostel hazards (rodent infestations, room bites, contaminated mess food, broken door locks) met with administrative inaction, leaving students unsure how to legally escalate complaints under Indian statutory frameworks.
 
-**`vyshuuu`** unifies these three domains into a single, cohesive, client-first architecture. It rejects manufactured, unscientific "safety scores", automated government portal spam bots, and false guarantees. Instead, it provides verifiable data, cryptographic proof preservation, and an intelligent navigator for statutory rights enforcement.
+**`ResQ`** unifies these three domains into a single, cohesive, client-first architecture. It rejects manufactured, unscientific "safety scores", automated government portal spam bots, and false guarantees. Instead, it provides verifiable data, cryptographic proof preservation, and an intelligent navigator for statutory rights enforcement.
 
 ---
 
@@ -101,13 +101,13 @@ flowchart TD
 
 ## 4. Statutory Portal Handoff Architecture
 
-Government portals strictly prohibit automated headless bots and require citizen CAPTCHA / OTP verification. `vyshuuu` bridges this through **Assisted Portal Handoff**:
+Government portals strictly prohibit automated headless bots and require citizen CAPTCHA / OTP verification. `ResQ` bridges this through **Assisted Portal Handoff**:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Student as Female Student / Complainant
-    participant Mobile as vyshuuu Mobile Client
+    participant Mobile as ResQ Mobile Client
     participant Server as Fastify Gateway
     participant Portal as Official Govt Portal (UGC / FSSAI)
 
@@ -139,14 +139,14 @@ flowchart LR
     Action -->|"Severe Compromise"| Wipe["1-Tap Panic Wipe<br/>(Purges All SQLite Tables + VACUUM)"]
 
     Calc --> SecretUnlock["Stealth Unlock: Tap 'C' Twice or Unlock Icon"]
-    SecretUnlock --> RestoreApp["Resume vyshuuu Interface"]
+    SecretUnlock --> RestoreApp["Resume ResQ Interface"]
 ```
 
 ### Security & Privacy Commitments:
 * **Zero Cloud Telemetry:** All routes, searches, incidents, and grievance drafts remain exclusively on the user's device in local SQLite storage.
 * **1-Tap Hard Wipe:** Instant purge of all four local database tables (`saved_journeys`, `recent_searches`, `saved_incidents`, `saved_grievances`) followed by SQLite `VACUUM`.
 * **Prompt-Injection Isolation:** AI pipelines treat all external text, extracted OCR, and document attachments strictly as *untrusted data strings*, preventing jailbreaks or instruction manipulation.
-* **No Speculative Identity Claims:** vyshuuu Protect never claims `@user_x` on Instagram is the same physical individual as `@user_y` on WhatsApp without official police forensic subpoena.
+* **No Speculative Identity Claims:** ResQ Protect never claims `@user_x` on Instagram is the same physical individual as `@user_y` on WhatsApp without official police forensic subpoena.
 
 ---
 
@@ -253,8 +253,8 @@ d:\vyshu project\
 
 ### Installation
 ```bash
-git clone https://github.com/KatkamKoushik/vyshuuu-Unified-Women-Safety-Action-Platform.git vyshuuu
-cd vyshuuu
+git clone https://github.com/KatkamKoushik/vyshuuu-Unified-Women-Safety-Action-Platform.git resq
+cd resq
 npm install
 ```
 

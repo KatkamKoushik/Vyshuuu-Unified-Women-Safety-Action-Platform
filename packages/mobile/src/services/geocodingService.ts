@@ -17,6 +17,17 @@ export interface LocationPoint {
   subtitle?: string;
   latitude: number;
   longitude: number;
+  distanceKm?: number;
+}
+
+export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 // Built-in verified benchmark points for quick offline/instant testing (Indian hubs prioritized)
@@ -161,24 +172,41 @@ export async function requestDeviceLocation(): Promise<{
   }
 }
 
-export async function searchDestinations(query: string): Promise<LocationPoint[]> {
+export async function searchDestinations(
+  query: string,
+  userLocation?: { latitude: number; longitude: number } | null
+): Promise<LocationPoint[]> {
+  const hasUserLoc = Boolean(userLocation && Number.isFinite(userLocation.latitude) && Number.isFinite(userLocation.longitude));
+
   if (!query || query.trim().length < 2) {
+    if (hasUserLoc && userLocation) {
+      return BENCHMARK_POINTS.map((p) => {
+        const dist = calculateDistanceKm(userLocation.latitude, userLocation.longitude, p.latitude, p.longitude);
+        const distLabel = dist < 1 ? `${Math.round(dist * 1000)}m away` : `${dist.toFixed(1)} km away`;
+        return {
+          ...p,
+          distanceKm: dist,
+          subtitle: `${distLabel} • ${p.subtitle || ''}`,
+        };
+      }).sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+    }
     return BENCHMARK_POINTS;
   }
 
   const q = query.trim().toLowerCase();
-  const localMatches = BENCHMARK_POINTS.filter(
-    (p) => p.title.toLowerCase().includes(q) || (p.subtitle && p.subtitle.toLowerCase().includes(q))
-  );
+  const cleanQ = q.replace(/^(nearest|nearby|close\s+to|around)\s+/i, '').trim() || q;
 
-  // 1. Try Geospatial Gateway (which caches & proxies Photon)
+  // 1. Try Geospatial Gateway (which caches & proxies Photon with proximity ranking)
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3500);
 
-    const gatewayRes = await fetch(`${GATEWAY_BASE_URL}/api/v1/geocode/search?q=${encodeURIComponent(query)}&limit=5`, {
-      signal: controller.signal,
-    });
+    let url = `${GATEWAY_BASE_URL}/api/v1/geocode/search?q=${encodeURIComponent(cleanQ)}&limit=6`;
+    if (hasUserLoc && userLocation) {
+      url += `&lat=${userLocation.latitude}&lon=${userLocation.longitude}`;
+    }
+
+    const gatewayRes = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
 
     if (gatewayRes.ok) {
@@ -191,13 +219,16 @@ export async function searchDestinations(query: string): Promise<LocationPoint[]
     // Gateway offline/timeout: fallback to direct Photon
   }
 
-  // 2. Direct Photon Autocomplete (OpenStreetMap search by Komoot with India spatial bias)
+  // 2. Direct Photon Autocomplete with spatial proximity
   const photonController = new AbortController();
   const photonTimer = setTimeout(() => photonController.abort(), 4000);
 
   try {
-    // Biased to India bounding box (68.1,6.7,97.4,35.5) for high-accuracy local POI resolution
-    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&bbox=68.1,6.7,97.4,35.5`;
+    let photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQ)}&limit=8&bbox=68.1,6.7,97.4,35.5`;
+    if (hasUserLoc && userLocation) {
+      photonUrl += `&lat=${userLocation.latitude}&lon=${userLocation.longitude}`;
+    }
+
     const res = await fetch(photonUrl, {
       headers: {
         'Accept': 'application/json',
@@ -209,7 +240,7 @@ export async function searchDestinations(query: string): Promise<LocationPoint[]
     if (res.ok) {
       const data: any = await res.json();
       if (Array.isArray(data.features) && data.features.length > 0) {
-        const results: LocationPoint[] = data.features
+        let results: LocationPoint[] = data.features
           .map((feat: any) => {
             const coords = feat?.geometry?.coordinates;
             if (!Array.isArray(coords) || coords.length < 2) return null;
@@ -218,44 +249,60 @@ export async function searchDestinations(query: string): Promise<LocationPoint[]
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
             const p = feat.properties || {};
-            const subtitleParts = [p.street, p.locality || p.district, p.city, p.state, p.country].filter(Boolean);
+            const dist = hasUserLoc && userLocation
+              ? calculateDistanceKm(userLocation.latitude, userLocation.longitude, lat, lon)
+              : undefined;
+
+            const localityParts = [p.street, p.locality || p.district, p.city, p.state].filter(Boolean);
+            let subtitle = localityParts.join(', ') || 'India';
+            if (dist !== undefined) {
+              const distLabel = dist < 1 ? `${Math.round(dist * 1000)}m away` : `${dist.toFixed(1)} km away`;
+              subtitle = `${distLabel} • ${subtitle}`;
+            }
+
             return {
-              title: p.name || subtitleParts[0] || 'Unknown Place',
-              subtitle: subtitleParts.join(', '),
+              title: p.name || localityParts[0] || 'Unknown Place',
+              subtitle,
               latitude: lat,
               longitude: lon,
+              distanceKm: dist,
             };
           })
           .filter((pt: LocationPoint | null): pt is LocationPoint => pt !== null);
 
+        if (hasUserLoc) {
+          results.sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+        }
+
         if (results.length > 0) {
-          return results;
+          return results.slice(0, 6);
         }
       }
     }
   } catch {
     clearTimeout(photonTimer);
-    // Fall back to local offline matches
   }
 
-  // Offline fallback: try matching local stored recent searches in addition to benchmark points
-  try {
-    const { getRecentSearches } = await import('./storageService');
-    const recent = await getRecentSearches(10);
-    const recentMatches: LocationPoint[] = (recent || [])
-      .filter((r) => r.display_name?.toLowerCase().includes(q) || r.query?.toLowerCase().includes(q))
-      .map((r) => ({
-        title: r.display_name,
-        subtitle: `Saved search (${r.query})`,
-        latitude: r.lat,
-        longitude: r.lon,
-      }));
-    if (recentMatches.length > 0) {
-      return [...localMatches, ...recentMatches];
-    }
-  } catch {
-    // Local SQLite storage not initialized or unavailable in current runtime
-  }
+  // Fall back to local benchmarks filtered and sorted by proximity
+  return BENCHMARK_POINTS.filter(
+    (p) => p.title.toLowerCase().includes(cleanQ) || (p.subtitle && p.subtitle.toLowerCase().includes(cleanQ))
+  );
+}
 
-  return localMatches;
+/**
+ * 1-Tap shortcut to find nearby essential places within 500m - 3km
+ */
+export async function getNearbyEssentials(
+  userLocation: { latitude: number; longitude: number },
+  category: 'park' | 'pharmacy' | 'police' | 'transit' | 'store'
+): Promise<LocationPoint[]> {
+  const queryMap: Record<string, string> = {
+    park: 'park garden',
+    pharmacy: 'pharmacy medical chemist',
+    police: 'police station chowki',
+    transit: 'metro bus stop station',
+    store: 'supermarket store grocery',
+  };
+
+  return searchDestinations(queryMap[category] || category, userLocation);
 }

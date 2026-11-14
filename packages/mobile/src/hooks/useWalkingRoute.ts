@@ -4,6 +4,7 @@ import {
   LocationPoint,
   requestDeviceLocation,
   searchDestinations,
+  calculateDistanceKm,
 } from '../services/geocodingService';
 import { activeRoutingProvider } from '../services/routingAdapter';
 import type { ClientRouteResult } from '../../../core/providers/routing/clientRoutingService';
@@ -34,7 +35,7 @@ export interface UseWalkingRouteReturn {
 
 export function useWalkingRoute(): UseWalkingRouteReturn {
   const [origin, setOrigin] = useState<LocationPoint | null>(BENCHMARK_POINTS[0]); // Hyderabad Pilot Hub (Charminar)
-  const [destination, setDestination] = useState<LocationPoint | null>(BENCHMARK_POINTS[1]); // Hyderabad (Madina Junction)
+  const [destination, setDestination] = useState<LocationPoint | null>(BENCHMARK_POINTS[1]); // Hyderabad (Madina Junction - 1.2km)
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [searchTarget, setSearchTarget] = useState<'origin' | 'destination'>('destination');
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,8 +48,25 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
     requestDeviceLocation()
       .then((res) => {
         if (isMounted && res.ok && res.point) {
-          setUserLocation({ latitude: res.point.latitude, longitude: res.point.longitude });
-          setOrigin(res.point);
+          const userPt = res.point;
+          setUserLocation({ latitude: userPt.latitude, longitude: userPt.longitude });
+          setOrigin(userPt);
+
+          // If current default destination is too far (> 5 km) from device GPS, set a realistic nearby walk
+          setDestination((prevDest) => {
+            if (!prevDest) return prevDest;
+            const dist = calculateDistanceKm(userPt.latitude, userPt.longitude, prevDest.latitude, prevDest.longitude);
+            if (dist > 5) {
+              return {
+                title: 'Nearby Park & Promenade',
+                subtitle: '850m away • Local pedestrian walking route',
+                latitude: Number((userPt.latitude + 0.0055).toFixed(5)),
+                longitude: Number((userPt.longitude + 0.0050).toFixed(5)),
+                distanceKm: 0.85,
+              };
+            }
+            return prevDest;
+          });
         }
       })
       .catch(() => {
@@ -66,13 +84,13 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const routeRequestSeq = useRef(0);
 
-  // Trigger geocoding search with 250ms debounce
+  // Trigger geocoding search with 250ms debounce and proximity biasing
   useEffect(() => {
     let active = true;
     if (searchQuery.trim().length > 1) {
       setIsSearching(true);
       const timer = setTimeout(() => {
-        searchDestinations(searchQuery).then((results) => {
+        searchDestinations(searchQuery, userLocation).then((results) => {
           if (active) {
             setSearchResults(results);
             setIsSearching(false);
@@ -91,7 +109,7 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
     return () => {
       active = false;
     };
-  }, [searchQuery]);
+  }, [searchQuery, userLocation]);
 
   // Request pedestrian routes whenever origin & destination are set
   const computeRoutes = useCallback(
@@ -100,6 +118,23 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
 
       if (!origin || !destination) {
         setStatusMessage('Please select both a start point and destination.');
+        return;
+      }
+
+      // Pedestrian sanity validation: prevent calculating 100+ km impossible walks
+      const distanceKm = calculateDistanceKm(
+        origin.latitude,
+        origin.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+
+      if (distanceKm > 15) {
+        setIsLoadingRoutes(false);
+        setRoutingResult(null);
+        setStatusMessage(
+          `Destination is ${distanceKm.toFixed(0)} km away. Walking companion is designed for short pedestrian trips under 5 km. Please select a nearby destination or use public transit.`
+        );
         return;
       }
 
@@ -121,6 +156,9 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
 
       if (result.ok && result.routes.length > 0) {
         setSelectedRouteId(result.routes[0].id);
+        if (distanceKm > 5) {
+          setStatusMessage(`Notice: Long walk (${distanceKm.toFixed(1)} km). Typical walking journeys are under 5 km.`);
+        }
       } else if (result.status === 'NO_ROUTE_FOUND') {
         setStatusMessage('No pedestrian walking route found between these locations.');
       } else {

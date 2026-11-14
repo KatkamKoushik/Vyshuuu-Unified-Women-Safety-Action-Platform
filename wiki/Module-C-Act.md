@@ -1,4 +1,4 @@
-# Module C — Act (Statutory Grievance Assistant)
+﻿# Module C — Act (Statutory Grievance Assistant)
 
 ## Overview
 

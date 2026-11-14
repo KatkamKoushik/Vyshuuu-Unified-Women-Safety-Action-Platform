@@ -19,8 +19,8 @@ This repository is organized as an npm workspace monorepo:
 ### 2. Setup
 Clone the repository and install dependencies:
 ```bash
-git clone https://github.com/KatkamKoushik/Walkscope.git vyshuuu
-cd vyshuuu
+git clone https://github.com/KatkamKoushik/vyshuuu-Unified-Women-Safety-Action-Platform.git resq
+cd resq
 npm install
 ```
 

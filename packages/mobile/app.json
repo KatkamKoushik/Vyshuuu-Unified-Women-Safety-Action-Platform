@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "vyshuuu",
-    "slug": "vyshuuu",
+    "name": "ResQ",
+    "slug": "resq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vyshuuu.app"
+      "bundleIdentifier": "com.resq.app"
     },
     "android": {
-      "package": "com.vyshuuu.app",
+      "package": "com.resq.app",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/android-icon-foreground.png",

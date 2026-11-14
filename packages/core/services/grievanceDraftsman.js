@@ -10,7 +10,7 @@ import { hashSha256 } from './cryptoUtils.js';
 import { matchAuthorityForGrievance, VERIFIED_AUTHORITIES } from '../domain/authorityRegistry.js';
 
 export const DRAFTSMAN_DISCLAIMER =
-  'This grievance draft was generated for your review. vyshuuu does not provide legal advice, ' +
+  'This grievance draft was generated for your review. ResQ does not provide legal advice, ' +
   'guarantee administrative outcomes, or submit reports automatically. You retain full control to ' +
   'review, edit, and manually submit this documentation to the appropriate authority.';
 
@@ -186,6 +186,7 @@ export function composeFormalGrievance({
   impact = 'Substantial risk to health, safety, and academic well-being.',
   reliefRequested = 'Immediate inspection, certified remediation, and institutional compliance.',
   evidenceItems = [],
+  clarificationAnswers = [],
 }) {
   if (!institutionName || !hostelOrLocation || !rawNarrative) {
     throw new Error('institutionName, hostelOrLocation, and rawNarrative are mandatory for grievance composition');
@@ -290,20 +291,41 @@ export function composeFormalGrievance({
     );
   }
 
+  // Adaptive clarification answers incorporated directly into petition record
+  let nextSectionNum = 3;
+  if (Array.isArray(clarificationAnswers) && clarificationAnswers.length > 0) {
+    const answeredList = clarificationAnswers.filter((a) => a && typeof a.answer === 'string' && a.answer.trim().length > 0);
+    if (answeredList.length > 0) {
+      formalLines.push(
+        `### SECTION ${nextSectionNum}: CLARIFIED FACTUAL PARTICULARS (ADAPTIVE INTAKE)`,
+        `The Complainant has provided the following specific factual particulars under structured interview:`,
+        ''
+      );
+      for (const item of answeredList) {
+        formalLines.push(
+          `- **Question:** ${item.question}`,
+          `  > **Complainant Statement:** ${item.answer.trim()}`,
+          ''
+        );
+      }
+      nextSectionNum++;
+    }
+  }
+
   formalLines.push(
-    `### SECTION 3: LEGAL & STATUTORY FRAMEWORK`,
+    `### SECTION ${nextSectionNum++}: LEGAL & STATUTORY FRAMEWORK`,
     `The failure to maintain habitable and safe living quarters violates established safety norms and statutory mandates:`,
     `- **Mandate:** ${statutoryCitation}`,
     `- **Statutory Resolution Window:** ${authority.resolutionWindowDays ? `${authority.resolutionWindowDays} working days` : 'Immediate escalation required'}`,
     '',
-    `### SECTION 4: SPECIFIC RELIEF SOUGHT (PRAYERS)`,
+    `### SECTION ${nextSectionNum++}: SPECIFIC RELIEF SOUGHT (PRAYERS)`,
     `The Complainant respectfully requests the following time-bound remedies:`,
     `1. **Immediate Inspection:** Conduct an on-site physical inspection of ${hostelOrLocation}.`,
     `2. **Remedial Action:** ${reliefRequested}`,
     `3. **Written Report:** Furnish a written action-taken report detailing corrective interventions.`,
     `4. **Protection from Retaliation:** Ensure the complainant suffers no academic, administrative, or residential prejudice.`,
     '',
-    `### SECTION 5: ANNEXURES & CRYPTOGRAPHIC EVIDENCE DIGEST (SHA-256)`,
+    `### SECTION ${nextSectionNum}: ANNEXURES & CRYPTOGRAPHIC EVIDENCE DIGEST (SHA-256)`,
     `The following contemporaneous evidence is submitted in support of this representation. To ensure tamper-evidence, each item is indexed with its cryptographic SHA-256 checksum and scope disclosure:`,
     '',
     `| Annexure | Item Name | Captured Timestamp | Format | SHA-256 Digest (64 hex characters) | Digest Verification Scope |`,

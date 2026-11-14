@@ -1,0 +1,35 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@maplibre/maplibre-react-native": "11.5.1",
+    "@walking-companion/core": "*",
+    "expo": "~58.0.23",
+    "expo-dev-client": "~58.0.18",
+    "expo-location": "~58.0.22",
+    "expo-sqlite": "~58.0.15",
+    "expo-status-bar": "~58.0.5",
+    "expo-system-ui": "~58.0.7",
+    "react": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "typecheck": "node --max-old-space-size=4096 ../../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "expo": {
+    "install": {
+      "exclude": ["expo", "expo-dev-client", "expo-sqlite"]
+    }
+  },
+  "private": true
+}

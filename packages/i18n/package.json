@@ -1,0 +1,8 @@
+{
+  "name": "@walking-companion/i18n",
+  "version": "1.0.0",
+  "description": "Lightweight localization and message formatting for vyshuuu",
+  "type": "module",
+  "main": "index.js",
+  "private": true
+}

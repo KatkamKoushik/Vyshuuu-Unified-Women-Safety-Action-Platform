@@ -4,6 +4,7 @@ import {
   View,
   SafeAreaView,
   StatusBar,
+  Platform,
   Alert,
 } from 'react-native';
 import { useWalkingRoute } from './src/hooks/useWalkingRoute';
@@ -268,6 +269,7 @@ export default function App() {
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
   },
   screenContainer: {
     flex: 1,

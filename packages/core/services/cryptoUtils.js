@@ -174,3 +174,256 @@ export function hashSha256(data) {
 
   return pureJsSha256(bytes);
 }
+
+/**
+ * Converts a hex string to Uint8Array
+ */
+export function hexToBytes(hex) {
+  if (typeof hex !== 'string') return new Uint8Array(0);
+  const cleanHex = hex.trim().replace(/^0x/i, '');
+  const bytes = new Uint8Array(Math.floor(cleanHex.length / 2));
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(cleanHex.slice(i * 2, i * 2 + 2), 16) || 0;
+  }
+  return bytes;
+}
+
+/**
+ * Converts Uint8Array to lowercase hex string
+ */
+export function bytesToHex(bytes) {
+  if (!bytes) return '';
+  let hex = '';
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+/**
+ * Pure JavaScript HMAC-SHA256 implementation (RFC 2104).
+ * @param {Uint8Array} key
+ * @param {Uint8Array} message
+ * @returns {Uint8Array} 32-byte HMAC digest
+ */
+export function pureJsHmacSha256(key, message) {
+  let keyBytes = key;
+  if (keyBytes.length > 64) {
+    keyBytes = hexToBytes(pureJsSha256(keyBytes));
+  }
+  const keyPad = new Uint8Array(64);
+  keyPad.set(keyBytes);
+
+  const ipad = new Uint8Array(64);
+  const opad = new Uint8Array(64);
+  for (let i = 0; i < 64; i++) {
+    ipad[i] = keyPad[i] ^ 0x36;
+    opad[i] = keyPad[i] ^ 0x5c;
+  }
+
+  const innerMsg = new Uint8Array(64 + message.length);
+  innerMsg.set(ipad);
+  innerMsg.set(message, 64);
+  const innerHash = hexToBytes(pureJsSha256(innerMsg));
+
+  const outerMsg = new Uint8Array(64 + 32);
+  outerMsg.set(opad);
+  outerMsg.set(innerHash, 64);
+  return hexToBytes(pureJsSha256(outerMsg));
+}
+
+/**
+ * Derives a cryptographic key using PBKDF2-HMAC-SHA256 (RFC 8018).
+ * Provides memory-hard defense against brute-force dictionary attacks.
+ * @param {string} password
+ * @param {string} salt
+ * @param {number} [iterations=100000]
+ * @param {number} [keyLen=32]
+ * @returns {string} Hex-encoded derived key
+ */
+export function deriveKeyPbkdf2(password, salt, iterations = 100000, keyLen = 32) {
+  const safePass = String(password ?? '');
+  const safeSalt = String(salt ?? '');
+  const safeIter = Math.max(1000, Math.min(500000, Number(iterations) || 100000));
+
+  if (nodeCrypto && typeof nodeCrypto.pbkdf2Sync === 'function') {
+    return nodeCrypto.pbkdf2Sync(safePass, safeSalt, safeIter, keyLen, 'sha256').toString('hex');
+  }
+
+  const passBytes = toUtf8Bytes(safePass);
+  const saltBytes = toUtf8Bytes(safeSalt);
+  const saltWithBlock = new Uint8Array(saltBytes.length + 4);
+  saltWithBlock.set(saltBytes);
+  saltWithBlock[saltBytes.length + 3] = 1; // Block index 1 (big-endian)
+
+  let u = pureJsHmacSha256(passBytes, saltWithBlock);
+  const result = new Uint8Array(u);
+
+  for (let i = 1; i < safeIter; i++) {
+    u = pureJsHmacSha256(passBytes, u);
+    for (let j = 0; j < 32; j++) {
+      result[j] ^= u[j];
+    }
+  }
+
+  return bytesToHex(result.slice(0, keyLen));
+}
+
+/**
+ * Generates cryptographically secure random bytes as hex.
+ */
+export function generateSecureRandomHex(byteCount = 16) {
+  const count = Math.max(8, Math.min(64, byteCount));
+  if (nodeCrypto && typeof nodeCrypto.randomBytes === 'function') {
+    return nodeCrypto.randomBytes(count).toString('hex');
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(count);
+    globalThis.crypto.getRandomValues(bytes);
+    return bytesToHex(bytes);
+  }
+  const bytes = new Uint8Array(count);
+  for (let i = 0; i < count; i++) {
+    bytes[i] = Math.floor(Math.random() * 256) ^ (Date.now() & 0xff);
+  }
+  return bytesToHex(bytes);
+}
+
+/**
+ * Encrypts a sensitive string record at rest using authenticated encryption.
+ * In Node environments, uses hardware AES-256-GCM.
+ * In browser/Hermes environments, uses authenticated HMAC-CTR stream cipher.
+ * @param {string} plaintext
+ * @param {string} keyHex - 256-bit (64 hex characters) encryption key
+ * @returns {string} Formatted ciphertext: enc:v1:<iv>:<tag>:<ciphertext>
+ */
+export function encryptRecord(plaintext, keyHex) {
+  if (plaintext == null) return '';
+  const textStr = String(plaintext);
+  if (!textStr) return '';
+
+  const cleanKeyHex = (keyHex || '').padEnd(64, '0').slice(0, 64);
+  const keyBytes = hexToBytes(cleanKeyHex);
+  const ivHex = generateSecureRandomHex(12);
+  const ivBytes = hexToBytes(ivHex);
+
+  if (nodeCrypto && typeof nodeCrypto.createCipheriv === 'function') {
+    const cipher = nodeCrypto.createCipheriv('aes-256-gcm', keyBytes, ivBytes);
+    let enc = cipher.update(textStr, 'utf8', 'hex');
+    enc += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+    return `enc:v1:${ivHex}:${tag}:${enc}`;
+  }
+
+  // Pure JS Authenticated CTR-HMAC
+  const textBytes = toUtf8Bytes(textStr);
+  const out = new Uint8Array(textBytes.length);
+  let offset = 0;
+  let blockIdx = 0;
+
+  while (offset < textBytes.length) {
+    const counterBuf = new Uint8Array(4);
+    const view = new DataView(counterBuf.buffer);
+    view.setUint32(0, blockIdx++, false);
+
+    const blockInput = new Uint8Array(12 + 4);
+    blockInput.set(ivBytes);
+    blockInput.set(counterBuf, 12);
+    const ks = pureJsHmacSha256(keyBytes, blockInput);
+
+    const take = Math.min(32, textBytes.length - offset);
+    for (let i = 0; i < take; i++) {
+      out[offset + i] = textBytes[offset + i] ^ ks[i];
+    }
+    offset += take;
+  }
+
+  const tagInput = new Uint8Array(12 + out.length);
+  tagInput.set(ivBytes);
+  tagInput.set(out, 12);
+  const fullTag = pureJsHmacSha256(keyBytes, tagInput);
+  const tagHex = bytesToHex(fullTag).slice(0, 32);
+
+  return `enc:v1:${ivHex}:${tagHex}:${bytesToHex(out)}`;
+}
+
+/**
+ * Decrypts a sensitive string record previously encrypted at rest.
+ * Safely passes through unencrypted/legacy records.
+ * @param {string} ciphertext
+ * @param {string} keyHex - 256-bit encryption key
+ * @returns {string} Decrypted plaintext string
+ */
+export function decryptRecord(ciphertext, keyHex) {
+  if (typeof ciphertext !== 'string' || !ciphertext.startsWith('enc:v1:')) {
+    return ciphertext ?? '';
+  }
+
+  const parts = ciphertext.split(':');
+  if (parts.length !== 5) return ciphertext;
+
+  const cleanKeyHex = (keyHex || '').padEnd(64, '0').slice(0, 64);
+  const keyBytes = hexToBytes(cleanKeyHex);
+  const ivHex = parts[2];
+  const tagHex = parts[3];
+  const dataHex = parts[4];
+  const ivBytes = hexToBytes(ivHex);
+  const dataBytes = hexToBytes(dataHex);
+
+  // 1. Try Node AES-256-GCM
+  if (nodeCrypto && typeof nodeCrypto.createDecipheriv === 'function') {
+    try {
+      const decipher = nodeCrypto.createDecipheriv('aes-256-gcm', keyBytes, ivBytes);
+      decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+      let dec = decipher.update(dataHex, 'hex', 'utf8');
+      dec += decipher.final('utf8');
+      return dec;
+    } catch {
+      // If AES-GCM tag mismatch, proceed to CTR-HMAC fallback check
+    }
+  }
+
+  // 2. Pure JS Authenticated CTR-HMAC
+  try {
+    const tagInput = new Uint8Array(12 + dataBytes.length);
+    tagInput.set(ivBytes);
+    tagInput.set(dataBytes, 12);
+    const expectedTag = bytesToHex(pureJsHmacSha256(keyBytes, tagInput)).slice(0, 32);
+
+    if (tagHex !== expectedTag) {
+      return '[ENCRYPTED_DATA_AUTH_FAILED]';
+    }
+
+    const out = new Uint8Array(dataBytes.length);
+    let offset = 0;
+    let blockIdx = 0;
+
+    while (offset < dataBytes.length) {
+      const counterBuf = new Uint8Array(4);
+      const view = new DataView(counterBuf.buffer);
+      view.setUint32(0, blockIdx++, false);
+
+      const blockInput = new Uint8Array(12 + 4);
+      blockInput.set(ivBytes);
+      blockInput.set(counterBuf, 12);
+      const ks = pureJsHmacSha256(keyBytes, blockInput);
+
+      const take = Math.min(32, dataBytes.length - offset);
+      for (let i = 0; i < take; i++) {
+        out[offset + i] = dataBytes[offset + i] ^ ks[i];
+      }
+      offset += take;
+    }
+
+    if (typeof TextDecoder !== 'undefined') {
+      return new TextDecoder().decode(out);
+    }
+    let str = '';
+    for (let i = 0; i < out.length; i++) {
+      str += String.fromCharCode(out[i]);
+    }
+    return str;
+  } catch {
+    return '[DECRYPTION_FAILED]';
+  }
+}

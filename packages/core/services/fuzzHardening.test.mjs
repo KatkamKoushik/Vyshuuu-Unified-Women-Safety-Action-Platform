@@ -30,7 +30,7 @@ describe('Fuzz Testing & Invariant Hardening (Checklist Sections 9, 24)', () => 
         'a'.repeat(5000),
         '99:99-99:99; '.repeat(50),
         // Unicode & emojis
-        '🕒 24/7 🚀 Mo-Su 10:00-20:00 🌟',
+        '\u{1F552} 24/7 \u{1F680} Mo-Su 10:00-20:00 \u{1F31F}',
         'مفتوح 24 ساعة',
         '24/7\x00NULL\r\nDROP TABLE',
         // Broken intervals and edge times

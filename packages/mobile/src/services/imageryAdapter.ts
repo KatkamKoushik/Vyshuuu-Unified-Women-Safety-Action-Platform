@@ -41,9 +41,15 @@ export interface IImageryProvider {
   ): Promise<PanoramaxSearchResult>;
 }
 
-export const GATEWAY_BASE_URL =
-  process.env.EXPO_PUBLIC_GATEWAY_URL ||
-  (Platform.OS === 'android' ? 'http://127.0.0.1:3000' : 'http://localhost:3000');
+const envGateway = (process.env.EXPO_PUBLIC_GATEWAY_URL || '').trim();
+
+export const GATEWAY_BASE_URL = envGateway
+  ? envGateway.replace(/\/+$/, '')
+  : typeof __DEV__ !== 'undefined' && __DEV__
+  ? Platform.OS === 'android'
+    ? 'http://127.0.0.1:3000'
+    : 'http://localhost:3000'
+  : '';
 
 export class PanoramaxImageryProvider implements IImageryProvider {
   public readonly id = 'panoramax';
@@ -60,6 +66,9 @@ export class PanoramaxImageryProvider implements IImageryProvider {
     lon: number,
     options: { radiusM?: number; limit?: number; signal?: AbortSignal } = {}
   ): Promise<PanoramaxSearchResult> {
+    if (!this.gatewayUrl) {
+      return findStreetImageryNear(lat, lon, options);
+    }
     const radiusM = options.radiusM || 100;
     const limit = options.limit || 3;
 

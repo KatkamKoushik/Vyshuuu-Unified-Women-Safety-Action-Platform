@@ -49,11 +49,11 @@ The generated representation adheres to formal administrative standards:
 flowchart LR
     CaseRecord["Prepared Grievance Case"] --> UI["Assisted Handoff Interface"]
 
-    UI --> Pill1["📋 Copy Subject Line"]
-    UI --> Pill2["📋 Copy Description (under 1500 chars)"]
-    UI --> Pill3["📋 Copy Relief Sought"]
-    UI --> Pill4["📋 Copy Statutory Act Citation"]
-    UI --> PortalBtn["🌐 Open UGC e-Samadhaan (HTTPS)"]
+    UI --> Pill1["Copy Subject Line"]
+    UI --> Pill2["Copy Description (under 1500 chars)"]
+    UI --> Pill3["Copy Relief Sought"]
+    UI --> Pill4["Copy Statutory Act Citation"]
+    UI --> PortalBtn["Open UGC e-Samadhaan (HTTPS)"]
 
     PortalBtn --> NativeBrowser["Sandboxed Browser Sheet<br/>User completes SMS OTP & CAPTCHA"]
 ```

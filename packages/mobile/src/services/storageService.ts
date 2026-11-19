@@ -6,6 +6,8 @@
  * Provides a 1-tap hardWipeAllData() for complete privacy compliance.
  */
 
+import { encryptRecord, decryptRecord, generateSecureRandomHex } from '@walking-companion/core';
+
 export interface ISQLiteDatabase {
   execAsync(source: string): Promise<any>;
   runAsync(source: string, ...params: any[]): Promise<any>;
@@ -100,6 +102,48 @@ export async function getDb(): Promise<ISQLiteDatabase> {
     })();
   }
   return dbInitPromise;
+}
+
+let activeVaultKey: string | null = null;
+
+/**
+ * Injects or overrides the active vault encryption key (used in tests or session unlock).
+ */
+export function setVaultEncryptionKey(key: string | null): void {
+  activeVaultKey = key;
+}
+
+/**
+ * Retrieves or generates the device-backed 256-bit encryption key for database records at rest.
+ * Uses hardware keystore (SecureStore) on physical devices with SQLite fallback in tests.
+ */
+export async function getVaultEncryptionKey(): Promise<string> {
+  if (activeVaultKey) return activeVaultKey;
+
+  let key: string | null = null;
+  try {
+    const SecureStore = await import('expo-secure-store');
+    key = await SecureStore.getItemAsync('vault_encryption_key');
+  } catch {
+    key = null;
+  }
+
+  if (!key) {
+    key = await getSecuritySetting('vault_encryption_key', '');
+  }
+
+  if (!key) {
+    key = generateSecureRandomHex(32);
+    try {
+      const SecureStore = await import('expo-secure-store');
+      await SecureStore.setItemAsync('vault_encryption_key', key);
+    } catch {
+      await setSecuritySetting('vault_encryption_key', key);
+    }
+  }
+
+  activeVaultKey = key;
+  return key;
 }
 
 /**
@@ -309,8 +353,11 @@ export async function hardWipeAllData(): Promise<void> {
     VACUUM;
   `);
 
+  activeVaultKey = null;
   try {
     const SecureStore = await import('expo-secure-store');
+    await SecureStore.deleteItemAsync('vault_encryption_key');
+    await SecureStore.deleteItemAsync('vault_device_salt');
     await SecureStore.deleteItemAsync('vault_pin_hash');
     await SecureStore.deleteItemAsync('vault_lockout_until');
   } catch {
@@ -320,11 +367,13 @@ export async function hardWipeAllData(): Promise<void> {
 
 /**
  * Saves an incident evidence record locally with cryptographic hash.
+ * Encrypts private incident narratives, sender handles, and evidence references at rest.
  * Validates content size before save to prevent silent post-hash truncation.
  */
 export async function saveIncident(incident: Omit<SavedIncident, 'created_at'>): Promise<void> {
   const db = await getDb();
   const createdAt = new Date().toISOString();
+  const key = await getVaultEncryptionKey();
 
   if (incident.message_content && incident.message_content.length > 4096) {
     throw new Error('Incident message content exceeds maximum allowable length of 4096 characters');
@@ -339,6 +388,11 @@ export async function saveIncident(incident: Omit<SavedIncident, 'created_at'>):
   const safeEvidenceRef = String(incident.evidence_ref || '').slice(0, 256);
   const safeHash = String(incident.hash || '').slice(0, 128);
 
+  // Authenticated encryption at rest
+  const encSender = encryptRecord(safeSender, key);
+  const encContent = encryptRecord(safeContent, key);
+  const encEvidenceRef = safeEvidenceRef ? encryptRecord(safeEvidenceRef, key) : '';
+
   await db.runAsync(
     `INSERT OR REPLACE INTO saved_incidents
       (id, timestamp, platform, sender_handle, message_content, was_blocked_prior, evidence_ref, hash, created_at)
@@ -347,10 +401,10 @@ export async function saveIncident(incident: Omit<SavedIncident, 'created_at'>):
       safeId,
       safeTimestamp,
       safePlatform,
-      safeSender,
-      safeContent,
+      encSender,
+      encContent,
       safeWasBlocked,
-      safeEvidenceRef,
+      encEvidenceRef,
       safeHash,
       createdAt,
     ]
@@ -358,14 +412,22 @@ export async function saveIncident(incident: Omit<SavedIncident, 'created_at'>):
 }
 
 /**
- * Retrieves all saved incident records ordered chronologically
+ * Retrieves all saved incident records ordered chronologically.
+ * Decrypts private fields before returning to authorized views.
  */
 export async function getSavedIncidents(): Promise<SavedIncident[]> {
   const db = await getDb();
+  const key = await getVaultEncryptionKey();
   const rows = await db.getAllAsync<SavedIncident>(
     `SELECT * FROM saved_incidents ORDER BY timestamp DESC;`
   );
-  return rows || [];
+  if (!rows || rows.length === 0) return [];
+  return rows.map((r) => ({
+    ...r,
+    sender_handle: decryptRecord(r.sender_handle, key),
+    message_content: decryptRecord(r.message_content, key),
+    evidence_ref: r.evidence_ref ? decryptRecord(r.evidence_ref, key) : '',
+  }));
 }
 
 /**
@@ -377,11 +439,13 @@ export async function deleteIncident(id: string): Promise<void> {
 }
 
 /**
- * Saves a statutory grievance case locally
+ * Saves a statutory grievance case locally.
+ * Encrypts sensitive personal narratives, institutional targets, and draft documents at rest.
  */
 export async function saveGrievance(grievance: Omit<SavedGrievance, 'created_at'>): Promise<void> {
   const db = await getDb();
   const createdAt = new Date().toISOString();
+  const key = await getVaultEncryptionKey();
 
   const safeId = String(grievance.id || '').slice(0, 128);
   const safeTitle = String(grievance.title || 'Formal Grievance').slice(0, 256);
@@ -396,6 +460,14 @@ export async function saveGrievance(grievance: Omit<SavedGrievance, 'created_at'
   const safeFormalDoc = String(grievance.formal_document || '').slice(0, 25000);
   const safeStatus = String(grievance.status || 'DRAFT').slice(0, 64);
 
+  // Authenticated encryption at rest for sensitive grievance fields
+  const encInstitution = encryptRecord(safeInstitution, key);
+  const encLocation = encryptRecord(safeLocation, key);
+  const encNarrative = encryptRecord(safeNarrative, key);
+  const encPriorSteps = safePriorSteps ? encryptRecord(safePriorSteps, key) : '';
+  const encRelief = safeRelief ? encryptRecord(safeRelief, key) : '';
+  const encFormalDoc = encryptRecord(safeFormalDoc, key);
+
   await db.runAsync(
     `INSERT OR REPLACE INTO saved_grievances
       (id, title, category, institution_name, hostel_location, incident_date, raw_narrative, prior_steps, relief_requested, authority_code, formal_document, status, created_at)
@@ -404,14 +476,14 @@ export async function saveGrievance(grievance: Omit<SavedGrievance, 'created_at'
       safeId,
       safeTitle,
       safeCategory,
-      safeInstitution,
-      safeLocation,
+      encInstitution,
+      encLocation,
       safeDate,
-      safeNarrative,
-      safePriorSteps,
-      safeRelief,
+      encNarrative,
+      encPriorSteps,
+      encRelief,
       safeAuthority,
-      safeFormalDoc,
+      encFormalDoc,
       safeStatus,
       createdAt,
     ]
@@ -419,14 +491,24 @@ export async function saveGrievance(grievance: Omit<SavedGrievance, 'created_at'
 }
 
 /**
- * Retrieves all saved grievance cases
+ * Retrieves all saved grievance cases with transparent at-rest decryption.
  */
 export async function getSavedGrievances(): Promise<SavedGrievance[]> {
   const db = await getDb();
+  const key = await getVaultEncryptionKey();
   const rows = await db.getAllAsync<SavedGrievance>(
     `SELECT * FROM saved_grievances ORDER BY created_at DESC;`
   );
-  return rows || [];
+  if (!rows || rows.length === 0) return [];
+  return rows.map((r) => ({
+    ...r,
+    institution_name: decryptRecord(r.institution_name, key),
+    hostel_location: decryptRecord(r.hostel_location, key),
+    raw_narrative: decryptRecord(r.raw_narrative, key),
+    prior_steps: r.prior_steps ? decryptRecord(r.prior_steps, key) : '',
+    relief_requested: r.relief_requested ? decryptRecord(r.relief_requested, key) : '',
+    formal_document: decryptRecord(r.formal_document, key),
+  }));
 }
 
 /**
@@ -438,33 +520,45 @@ export async function deleteGrievance(id: string): Promise<void> {
 }
 
 /**
- * Saves or updates a trusted emergency contact locally
+ * Saves or updates a trusted emergency contact locally.
+ * Encrypts phone numbers and relationship details at rest.
  */
 export async function saveEmergencyContact(contact: Omit<EmergencyContact, 'created_at'>): Promise<void> {
   const db = await getDb();
   const createdAt = new Date().toISOString();
+  const key = await getVaultEncryptionKey();
 
   const safeId = String(contact.id || `contact_${Date.now()}`).slice(0, 128);
   const safeName = String(contact.name || 'Emergency Contact').slice(0, 128);
   const safePhone = String(contact.phone_number || '').trim().slice(0, 32);
   const safeRel = String(contact.relationship || 'Trusted Contact').slice(0, 64);
 
+  // Authenticated encryption at rest
+  const encPhone = encryptRecord(safePhone, key);
+  const encRel = encryptRecord(safeRel, key);
+
   await db.runAsync(
     `INSERT OR REPLACE INTO emergency_contacts (id, name, phone_number, relationship, created_at)
      VALUES (?, ?, ?, ?, ?)`,
-    [safeId, safeName, safePhone, safeRel, createdAt]
+    [safeId, safeName, encPhone, encRel, createdAt]
   );
 }
 
 /**
- * Retrieves all saved emergency contacts ordered by creation date
+ * Retrieves all saved emergency contacts with transparent decryption.
  */
 export async function getEmergencyContacts(): Promise<EmergencyContact[]> {
   const db = await getDb();
+  const key = await getVaultEncryptionKey();
   const rows = await db.getAllAsync<EmergencyContact>(
     `SELECT * FROM emergency_contacts ORDER BY created_at ASC;`
   );
-  return rows || [];
+  if (!rows || rows.length === 0) return [];
+  return rows.map((r) => ({
+    ...r,
+    phone_number: decryptRecord(r.phone_number, key),
+    relationship: decryptRecord(r.relationship, key),
+  }));
 }
 
 /**

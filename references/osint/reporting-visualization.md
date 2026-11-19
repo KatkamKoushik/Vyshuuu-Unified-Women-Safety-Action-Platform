@@ -1,4 +1,4 @@
-## 📝 Reporting & Visualization
+## Reporting & Visualization
 
 [← Back to Index](../README.md)
 

@@ -5,6 +5,8 @@ let MapComponentImpl: React.FC<MapComponentProps>;
 
 if (Platform.OS === 'android') {
   MapComponentImpl = require('./MapComponent.android').MapComponent;
+} else if (Platform.OS === 'ios') {
+  MapComponentImpl = require('./MapComponent.ios').MapComponent;
 } else {
   MapComponentImpl = require('./MapComponent.web').MapComponent;
 }

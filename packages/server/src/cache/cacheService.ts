@@ -1,8 +1,8 @@
 /**
- * Unified Cache Service for Geospatial Gateway
+ * Unified In-Memory Cache Service for Geospatial Gateway
  * 
- * Provides an in-memory TTL cache with automatic expiration and active cleanup,
- * and seamless pluggability for Redis when configured via REDIS_URL.
+ * Provides a high-performance in-memory LRU cache shield with automatic TTL expiration,
+ * periodic cleanup sweeps, and burst stampede coalescing. Zero external infrastructure dependency.
  */
 
 export interface CacheEntry<T> {

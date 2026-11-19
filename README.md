@@ -6,8 +6,8 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/KatkamKoushik/ResQ/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" /></a>
-  <a href="https://nodejs.org/api/test.html"><img src="https://img.shields.io/badge/Tests-288%2F288%20Passing-success?style=for-the-badge&logo=node.js&logoColor=white" alt="Test Status" /></a>
+  <a href="https://github.com/KatkamKoushik/Vyshuuu-Unified-Women-Safety-Action-Platform/actions/workflows/ci.yml"><img src="https://github.com/KatkamKoushik/Vyshuuu-Unified-Women-Safety-Action-Platform/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+  <a href="https://nodejs.org/api/test.html"><img src="https://img.shields.io/badge/Tests-293%2F293%20Passing-success?style=for-the-badge&logo=node.js&logoColor=white" alt="Test Status" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://fastify.dev/"><img src="https://img.shields.io/badge/Fastify-5.12-black?style=for-the-badge&logo=fastify&logoColor=white" alt="Fastify" /></a>
   <a href="https://reactnative.dev/"><img src="https://img.shields.io/badge/React%20Native-0.88.1-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native" /></a>

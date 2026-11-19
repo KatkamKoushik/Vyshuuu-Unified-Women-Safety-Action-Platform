@@ -19,7 +19,7 @@
     "build:server": "npm run --workspace=@walking-companion/server build",
     "start:server": "npm run --workspace=@walking-companion/server start",
     "dev:server": "npm run --workspace=@walking-companion/server dev",
-    "lint": "eslint packages/core packages/server"
+    "lint": "eslint packages/core packages/server packages/mobile"
   },
   "keywords": [
     "resq",
@@ -38,5 +38,8 @@
   },
   "devDependencies": {
     "eslint": "^10.14.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.9"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -25,9 +25,7 @@ export const CalculatorDisguiseModal: React.FC<CalculatorDisguiseModalProps> = (
   const [prevValue, setPrevValue] = useState<number | null>(null);
   const [operator, setOperator] = useState<string | null>(null);
   const [waitingForOperand, setWaitingForOperand] = useState(false);
-  const [clearTapCount, setClearTapCount] = useState(0);
   const [configuredPin, setConfiguredPin] = useState('112=');
-  const headerTapRef = useRef({ count: 0, lastTap: 0 });
 
   // Load configured stealth PIN from SQLite
   useEffect(() => {
@@ -39,7 +37,6 @@ export const CalculatorDisguiseModal: React.FC<CalculatorDisguiseModalProps> = (
       setPrevValue(null);
       setOperator(null);
       setWaitingForOperand(false);
-      setClearTapCount(0);
     }
   }, [visible]);
 
@@ -83,18 +80,18 @@ export const CalculatorDisguiseModal: React.FC<CalculatorDisguiseModalProps> = (
   };
 
   const handleEqual = () => {
-    // 1. Check stealth PIN unlock sequence (e.g. entering "112" and tapping "=")
+    // 1. Check stealth PIN unlock sequence (e.g. entering configured PIN and tapping "=")
     const currentInputSequence = `${display}=`;
     const cleanConfiguredPin = configuredPin.endsWith('=') ? configuredPin : `${configuredPin}=`;
 
-    if (currentInputSequence === cleanConfiguredPin || display === '112' || display === '2026') {
+    if (currentInputSequence === cleanConfiguredPin) {
       setDisplay('0');
       onDismiss();
       return;
     }
 
-    // 2. Check emergency duress PIN sequence (e.g. "999=" or "000=")
-    if (currentInputSequence === '999=' || currentInputSequence === '000=' || display === '999') {
+    // 2. Check emergency duress PIN sequence
+    if (currentInputSequence === '999=' || currentInputSequence === '000=') {
       setDisplay('0');
       onDismiss();
       if (onEmergencyTrigger) {
@@ -125,29 +122,6 @@ export const CalculatorDisguiseModal: React.FC<CalculatorDisguiseModalProps> = (
     setPrevValue(null);
     setOperator(null);
     setWaitingForOperand(false);
-
-    // Discreet unlock fallback: tapping 'C' 3 times when display is 0 unlocks app
-    const nextCount = clearTapCount + 1;
-    setClearTapCount(nextCount);
-    if (nextCount >= 3) {
-      setClearTapCount(0);
-      onDismiss();
-    }
-  };
-
-  // Header discreet tap handler: 3 rapid taps on "Calculator" unlocks app
-  const handleHeaderTap = () => {
-    const now = Date.now();
-    if (now - headerTapRef.current.lastTap < 500) {
-      headerTapRef.current.count += 1;
-      if (headerTapRef.current.count >= 3) {
-        headerTapRef.current.count = 0;
-        onDismiss();
-      }
-    } else {
-      headerTapRef.current.count = 1;
-    }
-    headerTapRef.current.lastTap = now;
   };
 
   // Standard accounting 4x5 keypad layout (Zero giveaways or fake buttons)
@@ -164,11 +138,9 @@ export const CalculatorDisguiseModal: React.FC<CalculatorDisguiseModalProps> = (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
 
-        {/* Completely authentic, stealth header */}
+        {/* Authentic stealth header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleHeaderTap} activeOpacity={1}>
-            <Text style={styles.title}>Calculator</Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>Calculator</Text>
         </View>
 
         {/* Display Screen */}

@@ -1,4 +1,4 @@
-## 📷 Image & Reverse Search
+## Image & Reverse Search
 
 [← Back to Index](../README.md)
 

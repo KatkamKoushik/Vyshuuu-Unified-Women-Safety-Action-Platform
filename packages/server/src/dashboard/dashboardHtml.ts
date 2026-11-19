@@ -1046,6 +1046,9 @@ export function getDashboardHtml(): string {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 <span>Analyze Patterns</span>
               </button>
+              <button class="btn btn-secondary" onclick="clearSessionLog()" title="Clear session-scoped incidents from browser storage" style="padding: 6px 12px; font-size: 11px; margin-left: 6px;">
+                <span>Clear Session</span>
+              </button>
             </div>
 
             <div style="overflow-x: auto;">
@@ -1492,8 +1495,37 @@ export function getDashboardHtml(): string {
       }
     }
 
-    // Truly empty session array; no fabricated mock records
+    // Session-scoped incident array persisted in browser sessionStorage (REQ-014)
+    const STORAGE_KEY = 'resq_session_incidents_v1';
     const enteredIncidents = [];
+
+    function loadPersistedIncidents() {
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            enteredIncidents.length = 0;
+            parsed.forEach(function(item) { enteredIncidents.push(item); });
+          }
+        }
+      } catch (e) {}
+    }
+
+    function savePersistedIncidents() {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(enteredIncidents));
+      } catch (e) {}
+    }
+
+    function clearSessionLog() {
+      enteredIncidents.length = 0;
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      renderIncidentsTable();
+      showToast('Cleared session incident log from browser storage.', 'info');
+    }
 
     function copyHash(hash) {
       if (!hash) return;
@@ -1540,7 +1572,10 @@ export function getDashboardHtml(): string {
       });
     }
 
-    window.addEventListener('DOMContentLoaded', renderIncidentsTable);
+    window.addEventListener('DOMContentLoaded', function() {
+      loadPersistedIncidents();
+      renderIncidentsTable();
+    });
 
     function addIncidentRecord() {
       const platform = document.getElementById('incPlatform').value;
@@ -1565,6 +1600,7 @@ export function getDashboardHtml(): string {
       };
 
       enteredIncidents.unshift(newInc);
+      savePersistedIncidents();
       renderIncidentsTable();
 
       document.getElementById('incSender').value = '';

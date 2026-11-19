@@ -1,4 +1,4 @@
-## 🛰 Geospatial & Mapping OSINT
+## Geospatial & Mapping OSINT
 
 [← Back to Index](../README.md)
 

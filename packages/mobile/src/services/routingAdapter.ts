@@ -32,9 +32,15 @@ export interface IRoutingProvider {
   ): Promise<ClientRouteResult>;
 }
 
-export const GATEWAY_BASE_URL =
-  process.env.EXPO_PUBLIC_GATEWAY_URL ||
-  (Platform.OS === 'android' ? 'http://127.0.0.1:3000' : 'http://localhost:3000');
+const envGateway = (process.env.EXPO_PUBLIC_GATEWAY_URL || '').trim();
+
+export const GATEWAY_BASE_URL = envGateway
+  ? envGateway.replace(/\/+$/, '')
+  : typeof __DEV__ !== 'undefined' && __DEV__
+  ? Platform.OS === 'android'
+    ? 'http://127.0.0.1:3000'
+    : 'http://localhost:3000'
+  : '';
 
 /**
  * Production Gateway Routing Provider
@@ -61,6 +67,11 @@ export class GatewayRoutingProvider implements IRoutingProvider {
     destination: RoutingCoord,
     options: { timeoutMs?: number } = {}
   ): Promise<ClientRouteResult> {
+    if (!this.gatewayUrl) {
+      // In production builds without explicit gateway URL, directly use OSRM failover
+      return calculatePedestrianRoutes(origin, destination, options);
+    }
+
     const timeoutMs = options.timeoutMs || 8000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);

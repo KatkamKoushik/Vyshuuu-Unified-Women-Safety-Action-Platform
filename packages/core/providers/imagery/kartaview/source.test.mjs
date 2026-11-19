@@ -560,7 +560,7 @@ test('a chunked answer split mid-character is reassembled in order', async () =>
     lines: [
       {
         track: [{ lat: '1', lng: '2' }],
-        name: 'Strada Memorandumului — Cluj-Napoca 😀',
+        name: 'Strada Memorandumului — Cluj-Napoca \u{1F600}',
       },
     ],
     note: 'ăîşţ'.repeat(200),

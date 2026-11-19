@@ -64,6 +64,8 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
     sizeBytes: number;
     uri: string;
     digestHex: string;
+    isByteLevel: boolean;
+    integrityType: 'FILE_CONTENT_SHA256' | 'METADATA_CHECKSUM';
   } | null>(null);
 
   const handlePickEvidence = async () => {
@@ -80,9 +82,17 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
           sizeBytes: hashed.byteCount,
           uri: asset.uri,
           digestHex: hashed.hash,
+          isByteLevel: hashed.isByteLevel,
+          integrityType: hashed.integrityType,
         });
-        setNewEvidenceRef(`File: ${asset.name} (${hashed.integrityType}: ${hashed.hash.slice(0, 16)}...)`);
-        Alert.alert('Evidence Hashed', `${hashed.label}\nSHA-256: ${hashed.hash.slice(0, 24)}...`);
+        const refLabel = hashed.isByteLevel
+          ? `File: ${asset.name} (SHA-256 byte digest: ${hashed.hash.slice(0, 16)}...)`
+          : `File: ${asset.name} (Metadata-only checksum: ${hashed.hash.slice(0, 16)}...)`;
+        setNewEvidenceRef(refLabel);
+        Alert.alert(
+          hashed.isByteLevel ? 'Evidence Byte Digest Computed' : 'Metadata Checksum Computed',
+          `${hashed.label}\nSHA-256: ${hashed.hash.slice(0, 24)}...`
+        );
       }
     } catch {
       Alert.alert('Attachment Notice', 'Could not open document picker on this device.');
@@ -132,7 +142,9 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       const id = `inc_${Date.now()}`;
 
       const evidenceString = attachedFile
-        ? `File: ${attachedFile.name} (SHA-256: ${attachedFile.digestHex})`
+        ? (attachedFile.isByteLevel
+            ? `File: ${attachedFile.name} (SHA-256 byte digest: ${attachedFile.digestHex})`
+            : `File: ${attachedFile.name} (Metadata checksum: ${attachedFile.digestHex} — file bytes unverified)`)
         : newEvidenceRef.trim();
 
       // Calculate cryptographic SHA-256 digest on device immediately
@@ -144,7 +156,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
         messageContent: newMessage.trim(),
         wasBlockedPrior: newWasBlocked,
         evidenceReference: evidenceString || undefined,
-        digestType: attachedFile ? 'FILE_CONTENT_SHA256' : undefined,
+        digestType: attachedFile ? attachedFile.integrityType : undefined,
       });
 
       const record: SavedIncident = {

@@ -162,6 +162,12 @@ function createInMemoryDb() {
       }
       return null;
     },
+    getRawIncident(id) {
+      return savedIncidents.get(id);
+    },
+    getRawGrievance(id) {
+      return savedGrievances.get(id);
+    },
   };
 }
 
@@ -487,9 +493,17 @@ describe('storageService (SQLite Local Storage & Zero-Telemetry Privacy)', () =>
         hash: 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
       });
 
+      // Verify at-rest authenticated encryption in raw SQLite row (REQ-005)
+      const rawStoredIncident = db.getRawIncident('inc_test_1');
+      assert.ok(rawStoredIncident.message_content.startsWith('enc:v1:'));
+      assert.ok(!rawStoredIncident.message_content.includes('Ganga Hostel'));
+      assert.ok(rawStoredIncident.sender_handle.startsWith('enc:v1:'));
+      assert.ok(!rawStoredIncident.sender_handle.includes('@anon_tracker'));
+
       const incidents = await getSavedIncidents();
       assert.equal(incidents.length, 1);
       assert.equal(incidents[0].sender_handle, '@anon_tracker');
+      assert.equal(incidents[0].message_content, 'Watched you walk into Ganga Hostel');
       assert.equal(incidents[0].was_blocked_prior, 1);
       assert.equal(incidents[0].hash.length, 64);
 
@@ -514,9 +528,17 @@ describe('storageService (SQLite Local Storage & Zero-Telemetry Privacy)', () =>
         status: 'PREPARED_FOR_HANDOFF',
       });
 
+      // Verify at-rest authenticated encryption in raw SQLite row (REQ-005)
+      const rawStoredCase = db.getRawGrievance('case_test_1');
+      assert.ok(rawStoredCase.raw_narrative.startsWith('enc:v1:'));
+      assert.ok(!rawStoredCase.raw_narrative.includes('Rat bite'));
+      assert.ok(rawStoredCase.formal_document.startsWith('enc:v1:'));
+      assert.ok(!rawStoredCase.formal_document.includes('# FORMAL'));
+
       const cases = await getSavedGrievances();
       assert.equal(cases.length, 1);
       assert.equal(cases[0].authority_code, 'UGC_SAMADHAAN');
+      assert.equal(cases[0].raw_narrative, 'Rat bite in room 204 at night.');
       assert.equal(cases[0].status, 'PREPARED_FOR_HANDOFF');
 
       await deleteGrievance('case_test_1');

@@ -1,4 +1,4 @@
-## 🚆 Railway & Train OSINT
+## Railway & Train OSINT
 
 [← Back to Index](../README.md)
 

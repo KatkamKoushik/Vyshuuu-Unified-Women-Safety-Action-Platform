@@ -67,19 +67,19 @@ Reviewed the public GitHub repository via the GitHub connector at the pinned `ma
 - [x] **REQ-001 [P0/F]** Remove dashboard simulated pedestrian routes, fixed distance, and duration from production; show routing unavailable instead.
 - [x] **REQ-002 [P0/F]** Remove invented Nearby Park & Promenade destination generated from GPS offsets; require a verified place or explicit choice.
 - [x] **REQ-003 [P0/F]** Replace safe route calculated messaging with accurate routing-result language and limitations.
-- [ ] **REQ-004 [P0/F]** Ship a native iOS map implementation; the current non-Android branch selects a web iframe.
-- [ ] **REQ-005 [P0/F]** Encrypt saved incidents, contact numbers, grievance drafts, and documents at rest, not only behind a UI PIN.
-- [ ] **REQ-006 [P0/F]** Replace fixed-salt fast-SHA256 four-digit PIN storage with device-keystore-based content encryption and suitable PIN derivation.
+- [x] **REQ-004 [P0/F]** Ship a native iOS map implementation; the current non-Android branch selects a web iframe.
+- [x] **REQ-005 [P0/F]** Encrypt saved incidents, contact numbers, grievance drafts, and documents at rest, not only behind a UI PIN.
+- [x] **REQ-006 [P0/F]** Replace fixed-salt fast-SHA256 four-digit PIN storage with device-keystore-based content encryption and suitable PIN derivation.
 - [x] **REQ-007 [P0/F]** Remove the redundant PIN hash stored in normal SQLite.
 - [x] **REQ-008 [P0/F]** Make lockout state persist across re-mount/restart and use device-level authentication controls.
 - [x] **REQ-009 [P0/F]** Correct SOS messaging: launching SMS composer is not successful transmission or delivery.
-- [ ] **REQ-010 [P0/F]** Require a production HTTPS gateway URL in release builds instead of device-local localhost/127.0.0.1 defaults.
+- [x] **REQ-010 [P0/F]** Require a production HTTPS gateway URL in release builds instead of device-local localhost/127.0.0.1 defaults.
 - [x] **REQ-011 [P0/F]** Secure JSON inserted into MapComponent.web srcDoc script context; prevent HTML/script breakout and sandbox the iframe.
 - [x] **REQ-012 [P1/F]** Remove static example incident records and fabricated sample digests from the real web incident list.
 - [x] **REQ-013 [P1/F]** Replace dashboard fallback incident-analysis conclusions with honest unavailable results.
-- [ ] **REQ-014 [P1/F]** Persist real browser incident drafts in an encrypted vault or explicitly support ephemeral session-only data.
-- [ ] **REQ-015 [P1/F]** Stop representing metadata-only evidence checksums as proof of original file content.
-- [ ] **REQ-016 [P1/F]** Retain an encrypted original attachment; current file picker hashes a cache copy but stores mainly a textual reference.
+- [x] **REQ-014 [P1/F]** Persist real browser incident drafts in an encrypted vault or explicitly support ephemeral session-only data.
+- [x] **REQ-015 [P1/F]** Stop representing metadata-only evidence checksums as proof of original file content.
+- [x] **REQ-016 [P1/F]** Retain an encrypted original attachment; current file picker hashes a cache copy but stores mainly a textual reference.
 - [x] **REQ-017 [P1/F]** Include evidence reference, prior-block marker, and other relevant fields in canonical incident integrity manifests.
 - [x] **REQ-018 [P1/F]** Validate message size before hashing; silent 2,048-character truncation breaks later verification.
 - [x] **REQ-019 [P1/F]** Unify React state updates and reroute execution to prevent using a stale origin immediately after setOrigin().
@@ -88,22 +88,22 @@ Reviewed the public GitHub repository via the GitHub connector at the pinned `ma
 - [x] **REQ-022 [P1/F]** Use a single shared promise for async SQLite open/schema initialization to avoid races.
 - [x] **REQ-023 [P1/F]** Make local hard-wipe remove SecureStore credentials, cached attachments, exports, and other product-owned copies.
 - [x] **REQ-024 [P1/F]** Avoid saying SQLite DELETE+VACUUM is guaranteed forensic/cryptographic secure erase.
-- [ ] **REQ-025 [P1/F]** Load private grievance records only after authorization, not merely on selecting the vault subtab.
-- [ ] **REQ-026 [P1/F]** Review the calculator disguise: built-in 112/2026 codes, triple-clear, and header-tap shortcuts defeat a secret-disguise claim.
+- [x] **REQ-025 [P1/F]** Load private grievance records only after authorization, not merely on selecting the vault subtab.
+- [x] **REQ-026 [P1/F]** Review the calculator disguise: built-in 112/2026 codes, triple-clear, and header-tap shortcuts defeat a secret-disguise claim.
 - [x] **REQ-027 [P1/F]** Add explicit Gemini request deadlines/cancellation; existing generateContent fetches have no timeout.
 - [x] **REQ-028 [P1/F]** Validate Gemini response fields after JSON.parse instead of trusting parsed model output.
 - [x] **REQ-029 [P1/F]** Constrain navigator chat message count, role, per-message size, and total token cost.
 - [x] **REQ-030 [P1/F]** Do not equate cross-platform contacts with one identified perpetrator in a HIGH-severity heuristic.
 - [x] **REQ-031 [P1/F]** Pass the actual local timezone for off-hours incident analysis instead of default UTC.
 - [x] **REQ-032 [P1/F]** Correct inaccurate web map attribution behavior when attributionControl is disabled.
-- [ ] **REQ-033 [P1/F]** Enable ESLint for active TypeScript/TSX code; current configuration targets JS and MJS only.
-- [ ] **REQ-034 [P1/F]** Replace hard-coded CI passing and test-count badges with live reports.
-- [ ] **REQ-035 [P1/F]** Actually connect Redis/PostGIS if needed or remove claims implying they currently handle requests.
-- [ ] **REQ-036 [P1/F]** Use strict browser CORS allowlists and enforce a dashboard content security policy.
+- [x] **REQ-033 [P1/F]** Enable ESLint for active TypeScript/TSX code; current configuration targets JS and MJS only.
+- [x] **REQ-034 [P1/F]** Replace hard-coded CI passing and test-count badges with live reports.
+- [x] **REQ-035 [P1/F]** Actually connect Redis/PostGIS if needed or remove claims implying they currently handle requests.
+- [x] **REQ-036 [P1/F]** Use strict browser CORS allowlists and enforce a dashboard content security policy.
 - [x] **REQ-037 [P2/F]** Validate geocode limit before arithmetic; nonnumeric inputs currently can yield NaN.
 - [x] **REQ-038 [P2/F]** Validate corridor point geographic ranges and prevent oversized geographic bounding boxes.
-- [ ] **REQ-039 [P2/F]** Fix rerouting UI that clears the rerouting state before state-driven new-origin requests finish.
-- [ ] **REQ-040 [P2/F]** Do not label session-only GPS coordinates live tracking when they are a one-time fix.
+- [x] **REQ-039 [P2/F]** Fix rerouting UI that clears the rerouting state before state-driven new-origin requests finish.
+- [x] **REQ-040 [P2/F]** Do not label session-only GPS coordinates live tracking when they are a one-time fix.
 
 ## 02 — SOS and emergency operations
 

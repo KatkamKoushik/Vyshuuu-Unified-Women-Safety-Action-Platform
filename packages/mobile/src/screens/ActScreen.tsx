@@ -127,10 +127,14 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
   }, []);
 
   useEffect(() => {
-    if (actSubTab === 'vault') {
+    if (actSubTab === 'vault' && isVaultUnlocked) {
       loadSavedGrievances();
+    } else if (actSubTab !== 'vault') {
+      // Flush sensitive representations from memory when navigating away from vault
+      setSavedGrievancesList([]);
+      setIsVaultUnlocked(false);
     }
-  }, [actSubTab, loadSavedGrievances]);
+  }, [actSubTab, isVaultUnlocked, loadSavedGrievances]);
 
   const handleDeleteGrievanceRecord = (id: string, title: string) => {
     Alert.alert(
@@ -831,7 +835,10 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
                 </View>
                 <TouchableOpacity
                   style={[styles.lockVaultBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                  onPress={() => setIsVaultUnlocked(false)}
+                  onPress={() => {
+                    setIsVaultUnlocked(false);
+                    setSavedGrievancesList([]);
+                  }}
                 >
                   <Text style={[styles.lockVaultBtnText, { color: theme.textSecondary }]}>Lock Vault</Text>
                 </TouchableOpacity>

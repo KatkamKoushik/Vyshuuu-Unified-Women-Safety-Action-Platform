@@ -55,9 +55,34 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
-  // Enable Cross-Origin Resource Sharing for mobile apps and dev clients
+  // Enable Cross-Origin Resource Sharing with safe allowlist controls
+  const allowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
+  const configuredOrigins = allowedOriginsEnv
+    ? allowedOriginsEnv.split(',').map((o) => o.trim())
+    : null;
+
   await app.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // Allow non-browser requests (native mobile apps, curl, background workers) with no origin header
+      if (!origin) return cb(null, true);
+
+      if (configuredOrigins && configuredOrigins.length > 0) {
+        if (configuredOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error('CORS origin not allowed'), false);
+      }
+
+      // Default safe local origins
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return cb(null, true);
+      }
+
+      // Permissive dev mode
+      if (process.env.NODE_ENV !== 'production') {
+        return cb(null, true);
+      }
+
+      return cb(new Error('CORS origin not allowed by policy'), false);
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
   });
 
@@ -69,8 +94,18 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
     });
   }
 
-  // Web Application & Interactive Dashboard
+  // Web Application & Interactive Dashboard with Content Security Policy
   const serveDashboard = async (_request: any, reply: any) => {
+    reply.header(
+      'Content-Security-Policy',
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+      "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; " +
+      "font-src 'self' https://fonts.gstatic.com; " +
+      "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; " +
+      "connect-src 'self'; " +
+      "frame-ancestors 'none';"
+    );
     return reply.type('text/html; charset=utf-8').send(getDashboardHtml());
   };
   app.get('/', serveDashboard);

@@ -546,7 +546,7 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
             <AppIcon name="alert" size={16} color="#FFFFFF" />
             <Text style={styles.emergencyBtnText}>Emergency SOS / 112</Text>
           </View>
-          <Text style={styles.emergencyBtnSubtext}>Live GPS & Helplines</Text>
+          <Text style={styles.emergencyBtnSubtext}>GPS Fix & Helplines</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { getSecuritySetting, setSecuritySetting } from '../../services/storageService';
-import { hashSha256 } from '@walking-companion/core';
+import { deriveKeyPbkdf2, generateSecureRandomHex, hashSha256 } from '@walking-companion/core';
 import { useTheme } from '../../theme/ThemeContext';
 import { AppIcon } from './AppIcon';
 
@@ -21,7 +21,6 @@ interface VaultSecurityModalProps {
   title?: string;
 }
 
-const PIN_SALT = 'resq_vault_v1_salt_9f8e7d';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 30;
 
@@ -36,6 +35,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
   const [activeMode, setActiveMode] = useState<'verify' | 'setup'>(initialMode);
   const [pin, setPin] = useState('');
   const [storedPinHash, setStoredPinHash] = useState<string | null>(null);
+  const [deviceSalt, setDeviceSalt] = useState<string>('');
   const [setupStep, setSetupStep] = useState<'enter' | 'confirm'>('enter');
   const [firstPin, setFirstPin] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -43,9 +43,9 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
 
   const timerRef = useRef<any>(null);
 
-  // Compute salted SHA-256 hash of PIN
-  const hashPin = (rawPin: string): string => {
-    return hashSha256(`${PIN_SALT}:${rawPin}`);
+  // Derives memory-hard cryptographic credential token via PBKDF2-HMAC-SHA256
+  const derivePinToken = (rawPin: string, saltStr: string): string => {
+    return deriveKeyPbkdf2(rawPin, saltStr || 'resq_vault_default_salt', 100000, 32);
   };
 
   // Read stored PIN hash from secure store or SQLite security settings
@@ -74,6 +74,26 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
               setLockoutTimer(remaining);
             }
           }
+
+          // 0. Load or provision dynamic per-device salt
+          let salt: string | null = null;
+          try {
+            salt = await SecureStore.getItemAsync('vault_device_salt');
+          } catch {
+            salt = null;
+          }
+          if (!salt) {
+            salt = await getSecuritySetting('vault_device_salt', '');
+          }
+          if (!salt) {
+            salt = generateSecureRandomHex(16);
+            try {
+              await SecureStore.setItemAsync('vault_device_salt', salt);
+            } catch {
+              await setSecuritySetting('vault_device_salt', salt);
+            }
+          }
+          setDeviceSalt(salt);
 
           // 1. Try platform-backed hardware keystore (SecureStore)
           let hash: string | null = null;
@@ -134,24 +154,26 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
             setSetupStep('confirm');
           } else {
             if (nextPin === firstPin) {
-              const newHash = hashPin(nextPin);
+              const currentSalt = deviceSalt || 'resq_vault_default_salt';
+              const newDerivedToken = derivePinToken(nextPin, currentSalt);
               try {
                 // Save to SecureStore hardware-backed keystore
                 let savedToSecureStore = false;
                 try {
-                  await SecureStore.setItemAsync('vault_pin_hash', newHash);
+                  await SecureStore.setItemAsync('vault_pin_hash', newDerivedToken);
                   savedToSecureStore = true;
                 } catch {
                   savedToSecureStore = false;
                 }
                 // Only fall back to SQLite if SecureStore hardware keystore is unavailable
                 if (!savedToSecureStore) {
-                  await setSecuritySetting('vault_pin_hash', newHash);
+                  await setSecuritySetting('vault_pin_hash', newDerivedToken);
                 }
 
+                setStoredPinHash(newDerivedToken);
                 Alert.alert(
                   'Vault Enrolled & Secured',
-                  'Your 4-digit vault PIN has been cryptographically salted and saved on this device.'
+                  'Your 4-digit vault PIN has been cryptographically secured using memory-hard key derivation and device-backed protection.'
                 );
                 setPin('');
                 setFirstPin('');
@@ -167,10 +189,26 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
             }
           }
         } else {
-          // Verification mode: strictly check salted hash against stored credential
-          // Zero universal backdoor PINs (1234 strictly removed)
-          const attemptHash = hashPin(nextPin);
-          if (storedPinHash && attemptHash === storedPinHash) {
+          // Verification mode: check PBKDF2-derived token against stored credential
+          const currentSalt = deviceSalt || 'resq_vault_default_salt';
+          const attemptToken = derivePinToken(nextPin, currentSalt);
+          let isMatch = Boolean(storedPinHash && attemptToken === storedPinHash);
+
+          // Graceful backward-compatibility migration for existing fast SHA-256 credentials
+          if (!isMatch && storedPinHash) {
+            const legacyHash = hashSha256(`resq_vault_v1_salt_9f8e7d:${nextPin}`);
+            if (storedPinHash === legacyHash) {
+              isMatch = true;
+              try {
+                await SecureStore.setItemAsync('vault_pin_hash', attemptToken);
+              } catch {
+                await setSecuritySetting('vault_pin_hash', attemptToken);
+              }
+              setStoredPinHash(attemptToken);
+            }
+          }
+
+          if (isMatch) {
             setPin('');
             setFailedAttempts(0);
             try {

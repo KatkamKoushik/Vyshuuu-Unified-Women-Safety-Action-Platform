@@ -166,7 +166,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
       let locationText = '';
       if (Number.isFinite(lat) && Number.isFinite(lon)) {
         const accText = accuracy ? ` (±${Math.round(accuracy)}m)` : '';
-        locationText = `My current live location: https://maps.google.com/?q=${lat},${lon}${accText}`;
+        locationText = `My location at dispatch (GPS snapshot): https://maps.google.com/?q=${lat},${lon}${accText}`;
       } else {
         locationText = `Location: GPS unavailable at time of dispatch.`;
       }
@@ -248,9 +248,9 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
               <Text style={[styles.panicBadgeText, { color: theme.danger }]}>EMERGENCY SMS COMPOSER</Text>
             </View>
 
-            <Text style={[styles.panicHeading, { color: theme.text }]}>Draft Live GPS SOS to Trusted Contacts</Text>
+            <Text style={[styles.panicHeading, { color: theme.text }]}>Draft Location SOS to Trusted Contacts</Text>
             <Text style={[styles.panicSubtext, { color: theme.textSecondary }]}>
-              Pre-fills an emergency SMS with your live Google Maps coordinates and GPS accuracy radius for all trusted contacts.
+              Pre-fills an emergency SMS with your current Google Maps coordinate snapshot and GPS accuracy radius for all trusted contacts.
               Android and iOS security sandboxes require you to tap 'Send' in your Messages app.
             </Text>
 

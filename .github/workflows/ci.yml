@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feat/**', 'deps/**']
+    branches: [main, 'feat/**', 'deps/**', 'fix/**']
   pull_request:
-    branches: [main, 'feat/**', 'deps/**']
+    branches: [main, 'feat/**', 'deps/**', 'fix/**']
   merge_group:
   workflow_dispatch:
 
@@ -108,7 +108,7 @@ jobs:
         run: npm run typecheck
 
   unit-tests:
-    name: Unit & Stress Test Suite (287 Tests)
+    name: Unit & Stress Test Suite (293 Tests)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

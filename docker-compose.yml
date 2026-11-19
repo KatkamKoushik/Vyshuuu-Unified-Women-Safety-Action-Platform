@@ -12,62 +12,10 @@ services:
       - PORT=3000
       - HOST=0.0.0.0
       - TRUST_PROXY=127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-resq}:${POSTGRES_PASSWORD:-resq_secure_pass}@postgis:5432/${POSTGRES_DB:-resq_gis}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgis:
-        condition: service_healthy
-    networks:
-      - resq-internal
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 5s
-
-  # Redis 7 Cache Shield (Internal Network Only - No Exposed Host Ports)
-  redis:
-    image: redis:7-alpine
-    container_name: resq-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    networks:
-      - resq-internal
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  # PostgreSQL + PostGIS (Internal Network Only - No Exposed Host Ports)
-  postgis:
-    image: postgis/postgis:16-3.4-alpine
-    container_name: resq-postgis
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-resq}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-resq_secure_pass}
-      - POSTGRES_DB=${POSTGRES_DB:-resq_gis}
-    volumes:
-      - postgis_data:/var/lib/postgresql/data
-    networks:
-      - resq-internal
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resq} -d ${POSTGRES_DB:-resq_gis}"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-networks:
-  resq-internal:
-    driver: bridge
-
-volumes:
-  redis_data:
-  postgis_data:

@@ -35,12 +35,12 @@ The `ResQ` platform is built with a defense-in-depth security model specifically
 
 ## 2. Interactive Calculator Disguise Architecture
 
-When a user taps **Quick Disguise (🧮)** on the top bar:
+When a user taps **Quick Disguise (Calculator)** on the top bar:
 1. The app immediately renders a full-screen, native modal replacing all safety, map, and grievance views.
 2. The modal functions as a genuine standard calculator with arithmetic operations (`+`, `-`, `×`, `÷`, `%`, `±`).
 3. **Stealth Unlock Mechanism:**
-   * Tapping the clear button `C` twice when the screen displays `0` unlocks the disguise and restores the application.
-   * Alternatively, pressing the discreet unlock icon (`🔓`) restores the interface.
+   * Entering the user's secret stealth PIN followed by `=` unlocks the disguise and restores the application.
+   * Duress emergency codes (`999=` or `000=`) trigger silent SOS protocol while closing disguise.
 
 ```mermaid
 stateDiagram-v2
@@ -51,7 +51,7 @@ stateDiagram-v2
         Keypad --> ArithmeticResult: Compute 7 × 8 = 56
         ArithmeticResult --> Keypad: Punch Numbers
     }
-    CalculatorModal --> AppView: Tap 'C' Twice OR Tap '🔓'
+    CalculatorModal --> AppView: Enter Stealth PIN and Tap '='
 ```
 
 ---

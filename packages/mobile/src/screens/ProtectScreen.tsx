@@ -27,6 +27,8 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
 import { readAndHashFile } from '../services/evidenceHasher';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from '../components/common/AppIcon';
 
 interface ProtectScreenProps {
   initialText?: string;
@@ -34,6 +36,7 @@ interface ProtectScreenProps {
 }
 
 export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => {
+  const { theme } = useTheme();
   const [activeSubTab, setActiveSubTab] = useState<'timeline' | 'exposure'>('timeline');
 
   // Real SQLite Timeline State
@@ -297,23 +300,35 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={styles.contentContainer}>
       {/* Sub Tab Switcher */}
-      <View style={styles.tabSwitcher}>
+      <View style={[styles.tabSwitcher, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.switchBtn, activeSubTab === 'timeline' && styles.switchBtnActive]}
+          style={[styles.switchBtn, activeSubTab === 'timeline' && { backgroundColor: theme.card }]}
           onPress={() => setActiveSubTab('timeline')}
         >
-          <Text style={[styles.switchBtnText, activeSubTab === 'timeline' && styles.switchBtnTextActive]}>
+          <Text
+            style={[
+              styles.switchBtnText,
+              { color: theme.textMuted },
+              activeSubTab === 'timeline' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             {isVaultUnlocked ? `Incident Timeline (${incidents.length})` : 'Incident Vault'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.switchBtn, activeSubTab === 'exposure' && styles.switchBtnActive]}
+          style={[styles.switchBtn, activeSubTab === 'exposure' && { backgroundColor: theme.card }]}
           onPress={() => setActiveSubTab('exposure')}
         >
-          <Text style={[styles.switchBtnText, activeSubTab === 'exposure' && styles.switchBtnTextActive]}>
+          <Text
+            style={[
+              styles.switchBtnText,
+              { color: theme.textMuted },
+              activeSubTab === 'exposure' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             Exposure Audit
           </Text>
         </TouchableOpacity>
@@ -435,8 +450,22 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
               style={styles.checkRow}
               onPress={() => setNewWasBlocked(!newWasBlocked)}
             >
-              <Text style={styles.checkIcon}>{newWasBlocked ? '☑' : '☐'}</Text>
-              <Text style={styles.checkLabel}>Contact occurred after I previously blocked this sender</Text>
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  borderWidth: 1.5,
+                  borderColor: newWasBlocked ? theme.primary : theme.border,
+                  backgroundColor: newWasBlocked ? theme.primary : theme.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 8,
+                }}
+              >
+                {newWasBlocked && <AppIcon name="check" size={12} color="#FFFFFF" />}
+              </View>
+              <Text style={[styles.checkLabel, { color: theme.textSecondary }]}>Contact occurred after I previously blocked this sender</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.addBtn} onPress={handleAddIncident}>
@@ -491,11 +520,11 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                     </Text>
                     <TouchableOpacity
                       onPress={() => handleDeleteIncident(inc.id)}
-                      style={styles.deleteBtn}
+                      style={[styles.deleteBtn, { backgroundColor: theme.surface }]}
                       accessibilityRole="button"
                       accessibilityLabel="Delete incident record"
                     >
-                      <Text style={styles.deleteBtnText}>✕</Text>
+                      <AppIcon name="close" size={12} color={theme.textMuted} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -585,7 +614,7 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
                   <Text style={styles.findingCat}>{f.category.replace(/_/g, ' ')}</Text>
                   <Text style={styles.findingSnippet}>Identified: "{f.matchedSnippet}"</Text>
                   <Text style={styles.findingExpl}>{f.riskExplanation}</Text>
-                  <Text style={styles.findingTip}>💡 Tip: {f.remediationTip}</Text>
+                  <Text style={styles.findingTip}>Actionable Tip: {f.remediationTip}</Text>
                 </View>
               ))}
             </View>

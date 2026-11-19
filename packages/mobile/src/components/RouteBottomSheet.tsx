@@ -10,6 +10,8 @@ import {
   PanResponder,
 } from 'react-native';
 import type { ContextScoreBreakdown } from '../../../core/services/contextScoringService';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 import { RouteActionsBar } from './RouteActionsBar';
 import { ContextScoreCard } from './ContextScoreCard';
 import { RouteImageryPanel } from './RouteImageryPanel';
@@ -63,6 +65,7 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
   routeIntelligence,
   alternativesAnalysis,
 }) => {
+  const { theme } = useTheme();
   const [currentSnap, setCurrentSnap] = useState<'peek' | 'mid' | 'full'>('mid');
   const [showManeuvers, setShowManeuvers] = useState(false);
 
@@ -110,20 +113,40 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
     return `${min} min`;
   };
 
+  const isDaylight = daylightEstimate?.solarState === 'DAYLIGHT' || daylightEstimate?.solarState === 'CIVIL_TWILIGHT';
+  const solarStateLabel =
+    daylightEstimate?.solarState === 'DAYLIGHT'
+      ? 'Natural Daylight'
+      : daylightEstimate?.solarState === 'CIVIL_TWILIGHT'
+      ? 'Civil Twilight'
+      : daylightEstimate?.solarState === 'NAUTICAL_TWILIGHT'
+      ? 'Nautical Twilight'
+      : 'Astronomical Night';
+
   return (
-    <Animated.View style={[styles.sheetContainer, { height: sheetHeight }]}>
+    <Animated.View
+      style={[
+        styles.sheetContainer,
+        {
+          height: sheetHeight,
+          backgroundColor: theme.bg,
+          borderTopColor: theme.border,
+          shadowColor: theme.isDark ? '#000000' : '#64748B',
+        },
+      ]}
+    >
       {/* Draggable Top Handle */}
       <View {...panResponder.panHandlers} style={styles.handleZone}>
-        <View style={styles.handleBar} />
+        <View style={[styles.handleBar, { backgroundColor: theme.borderLight }]} />
       </View>
 
       {/* Status / Error Banner */}
       {statusMessage && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{statusMessage}</Text>
+        <View style={[styles.errorBanner, { backgroundColor: theme.dangerLight, borderColor: theme.danger }]}>
+          <Text style={[styles.errorText, { color: theme.danger }]}>{statusMessage}</Text>
           {(statusMessage.includes('rate-limited') || statusMessage.includes('timeout')) && (
             <TouchableOpacity
-              style={styles.retryBtn}
+              style={[styles.retryBtn, { backgroundColor: theme.danger }]}
               onPress={onRetry}
               accessibilityRole="button"
               accessibilityLabel="Retry route calculation"
@@ -135,14 +158,14 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
         </View>
       )}
 
-      {/* Peek Summary Bar (Always Visible at Top of Sheet) */}
+      {/* Peek Summary Bar */}
       {activeRoute && (
-        <View style={styles.peekHeader}>
+        <View style={[styles.peekHeader, { borderBottomColor: theme.borderLight }]}>
           <View style={styles.metricGroup}>
-            <Text style={styles.durationValue}>
+            <Text style={[styles.durationValue, { color: theme.text }]}>
               {formatDuration(activeRoute.durationSeconds)}
             </Text>
-            <Text style={styles.distanceValue}>
+            <Text style={[styles.distanceSmall, { color: theme.textSecondary }]}>
               {formatDistance(activeRoute.distanceMeters)}
             </Text>
             {contextScore && (
@@ -152,16 +175,16 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
                   {
                     backgroundColor:
                       contextScore.totalScore >= 70
-                        ? 'rgba(16, 185, 129, 0.15)'
+                        ? theme.successLight
                         : contextScore.totalScore >= 35
-                        ? 'rgba(245, 158, 11, 0.15)'
-                        : 'rgba(239, 68, 68, 0.15)',
+                        ? theme.warningLight
+                        : theme.dangerLight,
                     borderColor:
                       contextScore.totalScore >= 70
-                        ? '#10B981'
+                        ? theme.success
                         : contextScore.totalScore >= 35
-                        ? '#F59E0B'
-                        : '#EF4444',
+                        ? theme.warning
+                        : theme.danger,
                   },
                 ]}
               >
@@ -171,10 +194,10 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
                     {
                       color:
                         contextScore.totalScore >= 70
-                          ? '#10B981'
+                          ? theme.success
                           : contextScore.totalScore >= 35
-                          ? '#F59E0B'
-                          : '#EF4444',
+                          ? theme.warning
+                          : theme.danger,
                     },
                   ]}
                 >
@@ -184,9 +207,9 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
             )}
           </View>
 
-          {/* Quick Start Walking Button (Thumb reachable) */}
+          {/* Quick Start Walking Button */}
           <TouchableOpacity
-            style={styles.startWalkingCTA}
+            style={[styles.startWalkingCTA, { backgroundColor: theme.primary }]}
             onPress={onStartWalking}
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -206,16 +229,10 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
       >
         {/* Daylight / Solar Chip */}
         {daylightEstimate && (
-          <View style={styles.solarChip}>
-            <Text style={styles.solarText}>
-              {daylightEstimate.solarState === 'DAYLIGHT'
-                ? '☀️ Natural Daylight'
-                : daylightEstimate.solarState === 'CIVIL_TWILIGHT'
-                ? '🌅 Civil Twilight'
-                : daylightEstimate.solarState === 'NAUTICAL_TWILIGHT'
-                ? '🌆 Nautical Twilight'
-                : '🌙 Astronomical Night'}{' '}
-              ({daylightEstimate.solarElevationDeg > 0 ? `+${daylightEstimate.solarElevationDeg}°` : `${daylightEstimate.solarElevationDeg}°`}) • NOAA Math
+          <View style={[styles.solarChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <AppIcon name={isDaylight ? 'sun' : 'moon'} size={14} color={isDaylight ? theme.warning : theme.primary} />
+            <Text style={[styles.solarText, { color: theme.textSecondary }]}>
+              {solarStateLabel} ({daylightEstimate.solarElevationDeg > 0 ? `+${daylightEstimate.solarElevationDeg}°` : `${daylightEstimate.solarElevationDeg}°`}) • NOAA Math
             </Text>
           </View>
         )}
@@ -233,7 +250,7 @@ export const RouteBottomSheet: React.FC<RouteBottomSheetProps> = ({
         {/* Context Coverage Breakdown Card */}
         {contextScore && <ContextScoreCard score={contextScore} />}
 
-        {/* Why This Route Evidence Drawer (NightWise Intelligence) */}
+        {/* Why This Route Evidence Drawer */}
         {routeIntelligence && (
           <RouteEvidenceDrawer intelligence={routeIntelligence} />
         )}
@@ -274,14 +291,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#131C2E',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 20,
     zIndex: 90,
@@ -296,7 +310,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#475569',
   },
   peekHeader: {
     flexDirection: 'row',
@@ -305,7 +318,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   metricGroup: {
     flexDirection: 'row',
@@ -315,12 +327,10 @@ const styles = StyleSheet.create({
   durationValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#F8FAFC',
   },
-  distanceValue: {
+  distanceSmall: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#94A3B8',
   },
   scorePill: {
     paddingHorizontal: 8,
@@ -333,7 +343,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   startWalkingCTA: {
-    backgroundColor: '#0284C7',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
@@ -355,9 +364,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 1,
-    borderColor: '#EF4444',
     padding: 10,
     marginHorizontal: 16,
     borderRadius: 10,
@@ -367,12 +374,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   errorText: {
-    color: '#FCA5A5',
     fontSize: 12,
     flex: 1,
   },
   retryBtn: {
-    backgroundColor: '#EF4444',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -385,9 +390,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   solarChip: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -395,7 +401,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   solarText: {
-    color: '#38BDF8',
     fontSize: 12,
     fontWeight: '600',
   },

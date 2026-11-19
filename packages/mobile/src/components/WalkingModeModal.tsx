@@ -10,6 +10,8 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 
 interface Step {
   instruction: string;
@@ -34,6 +36,7 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
   totalDurationSeconds,
   routeTitle,
 }) => {
+  const { theme } = useTheme();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   useEffect(() => {
@@ -52,28 +55,28 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
 
   const handleNextStep = () => {
     if (hasNext) {
-      setCurrentStepIndex(currentStepIndex + 1);
+      setCurrentStepIndex((prev) => prev + 1);
     }
   };
 
   const handlePrevStep = () => {
     if (hasPrev) {
-      setCurrentStepIndex(currentStepIndex - 1);
+      setCurrentStepIndex((prev) => prev - 1);
     }
   };
 
   const handleEmergencyCall = () => {
     Alert.alert(
-      'Emergency Services',
-      'Launch the device dialer for standard emergency services (112 / regional emergency dispatch)?\n\nNotice: ResQ is an information tool and does not provide automated emergency dispatch or remote tracking.',
+      'Emergency Call 112',
+      'This will place an immediate call to India National Emergency Response Support System (112).',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Open Dialer (112)',
+          text: 'Call 112 Now',
           style: 'destructive',
           onPress: () => {
             Linking.openURL('tel:112').catch(() => {
-              Alert.alert('Error', 'Unable to launch phone dialer.');
+              Alert.alert('Dialer Error', 'Could not open phone dialer on this device.');
             });
           },
         },
@@ -93,41 +96,53 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
         {/* Top Header */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
           <View>
-            <Text style={styles.modeTitle}>🚶 Walking Mode</Text>
-            <Text style={styles.routeSubtitle} numberOfLines={1}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <AppIcon name="walk" size={18} color={theme.primary} />
+              <Text style={[styles.modeTitle, { color: theme.text }]}>Walking Mode</Text>
+            </View>
+            <Text style={[styles.routeSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
               {routeTitle} • {formatDistance(totalDistanceMeters)} ({formatDuration(totalDurationSeconds)})
             </Text>
           </View>
           <TouchableOpacity
-            style={styles.exitButton}
+            style={[styles.exitButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={onClose}
             accessibilityLabel="Exit Walking Mode"
           >
-            <Text style={styles.exitText}>✕ Exit</Text>
+            <Text style={[styles.exitText, { color: theme.textSecondary }]}>Exit</Text>
           </TouchableOpacity>
         </View>
 
         {/* Step Counter */}
         <View style={styles.counterRow}>
-          <Text style={styles.stepCounterText}>
+          <Text style={[styles.stepCounterText, { color: theme.primary }]}>
             Step {steps.length > 0 ? currentStepIndex + 1 : 1} of {Math.max(1, steps.length)}
           </Text>
         </View>
 
         {/* Big Instruction Box */}
-        <View style={styles.instructionContainer}>
-          <Text style={styles.instructionDistance}>
+        <View
+          style={[
+            styles.instructionContainer,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.instructionDistance, { color: theme.primary }]}>
             {formatDistance(currentStep.distanceMeters)}
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: theme.text }]}>
             {currentStep.instruction}
           </Text>
           {currentStep.streetName ? (
-            <Text style={styles.streetNameText}>
+            <Text style={[styles.streetNameText, { color: theme.textSecondary }]}>
               on {currentStep.streetName}
             </Text>
           ) : null}
@@ -136,39 +151,48 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
         {/* Step Navigation Controls */}
         <View style={styles.navControlsRow}>
           <TouchableOpacity
-            style={[styles.navButton, !hasPrev && styles.navButtonDisabled]}
+            style={[
+              styles.navButton,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              !hasPrev && { opacity: 0.4 },
+            ]}
             onPress={handlePrevStep}
             disabled={!hasPrev}
             accessibilityLabel="Previous Step"
           >
-            <Text style={[styles.navButtonText, !hasPrev && styles.navButtonTextDisabled]}>
-              ◀ Previous
+            <Text style={[styles.navButtonText, { color: theme.textSecondary }]}>
+              Previous
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.navButton, styles.navButtonPrimary, !hasNext && styles.navButtonDisabled]}
+            style={[
+              styles.navButton,
+              styles.navButtonPrimary,
+              { backgroundColor: theme.primary, borderColor: theme.primary },
+              !hasNext && { opacity: 0.4 },
+            ]}
             onPress={handleNextStep}
             disabled={!hasNext}
             accessibilityLabel="Next Step"
           >
-            <Text style={[styles.navButtonText, styles.navButtonTextPrimary, !hasNext && styles.navButtonTextDisabled]}>
-              Next Step ▶
+            <Text style={[styles.navButtonText, { color: '#FFFFFF', fontWeight: '800' }]}>
+              Next Step
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Bottom Safety & Emergency Bar */}
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { borderTopColor: theme.border }]}>
           <TouchableOpacity
-            style={styles.emergencyButton}
+            style={[styles.emergencyButton, { backgroundColor: theme.danger }]}
             onPress={handleEmergencyCall}
             accessibilityLabel="Emergency Dialer 112"
           >
-            <Text style={styles.emergencyIcon}>🚨</Text>
+            <AppIcon name="alert" size={18} color="#FFFFFF" />
             <Text style={styles.emergencyText}>Emergency Call (112)</Text>
           </TouchableOpacity>
-          <Text style={styles.disclaimerFootnote}>
+          <Text style={[styles.disclaimerFootnote, { color: theme.textMuted }]}>
             Keep eyes on your surroundings. Do not look at phone while crossing roads.
           </Text>
         </View>
@@ -180,139 +204,115 @@ export const WalkingModeModal: React.FC<WalkingModeModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0F1D',
-    justifyContent: 'space-between',
-    padding: 16,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: (StatusBar.currentHeight || 28) + 8,
-    paddingBottom: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
   },
   modeTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#38BDF8',
   },
   routeSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
     marginTop: 2,
     maxWidth: 240,
   },
   exitButton: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
   },
   exitText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#F1F5F9',
   },
   counterRow: {
-    alignItems: 'center',
-    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   stepCounterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   instructionContainer: {
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
+    flex: 1,
+    marginHorizontal: 16,
+    marginVertical: 12,
     padding: 24,
-    marginVertical: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#38BDF8',
-    minHeight: 220,
+    borderRadius: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   instructionDistance: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: '900',
-    color: '#38BDF8',
-    marginBottom: 8,
+    letterSpacing: -1,
+    marginBottom: 16,
   },
   instructionText: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 30,
+    marginBottom: 8,
   },
   streetNameText: {
-    fontSize: 16,
-    color: '#94A3B8',
-    marginTop: 8,
-    fontStyle: 'italic',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   navControlsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
   },
   navButton: {
     flex: 1,
-    backgroundColor: '#1E293B',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  navButtonPrimary: {
-    backgroundColor: '#0284C7',
-  },
-  navButtonDisabled: {
-    backgroundColor: '#0F172A',
-    opacity: 0.4,
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#CBD5E1',
-  },
-  navButtonTextPrimary: {
-    color: '#FFFFFF',
-  },
-  navButtonTextDisabled: {
-    color: '#475569',
-  },
-  bottomBar: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  emergencyButton: {
-    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DC2626',
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    minHeight: 50,
   },
-  emergencyIcon: {
-    fontSize: 18,
-    marginRight: 8,
+  navButtonPrimary: {},
+  navButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bottomBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  emergencyButton: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 52,
   },
   emergencyText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
   },
   disclaimerFootnote: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 10,
     textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 14,
   },
 });
-

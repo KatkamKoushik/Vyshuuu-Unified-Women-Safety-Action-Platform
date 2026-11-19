@@ -16,6 +16,8 @@ import {
   toggleFavoriteJourney,
   deleteJourney,
 } from '../services/storageService';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 
 interface SavedJourneysModalProps {
   visible: boolean;
@@ -28,6 +30,7 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
   onClose,
   onSelectJourney,
 }) => {
+  const { theme } = useTheme();
   const [journeys, setJourneys] = useState<SavedJourney[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -88,20 +91,27 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>⭐ Saved Journeys</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeText}>Close</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
+        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <AppIcon name="star" size={20} color={theme.warning} />
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Saved Journeys</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeText, { color: theme.textSecondary }]}>Close</Text>
           </TouchableOpacity>
         </View>
 
         {journeys.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📍</Text>
-            <Text style={styles.emptyTitle}>No saved journeys yet</Text>
-            <Text style={styles.emptySubtitle}>
-              When you view a walking route, tap the "+ Save Route" button to keep it stored locally in SQLite.
+            <AppIcon name="nav" size={40} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No saved journeys yet</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+              When you view a walking route, tap the "Save" button to keep it stored locally in SQLite.
             </Text>
           </View>
         ) : (
@@ -110,7 +120,7 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <TouchableOpacity
                   style={styles.cardMain}
                   onPress={() => {
@@ -119,23 +129,23 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
                   }}
                 >
                   <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
                       {item.title}
                     </Text>
-                    <View style={styles.scoreBadge}>
-                      <Text style={styles.scoreText}>{item.context_score}% Context</Text>
+                    <View style={[styles.scoreBadge, { backgroundColor: theme.primaryLight }]}>
+                      <Text style={[styles.scoreText, { color: theme.primary }]}>{item.context_score}% Context</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.cardLocations} numberOfLines={1}>
-                    {item.origin_name} ➔ {item.dest_name}
+                  <Text style={[styles.cardLocations, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {item.origin_name} → {item.dest_name}
                   </Text>
 
                   <View style={styles.cardMetrics}>
-                    <Text style={styles.metricText}>
-                      📏 {formatDistance(item.distance_m)} • ⏱️ {formatDuration(item.duration_s)}
+                    <Text style={[styles.metricText, { color: theme.textMuted }]}>
+                      {formatDistance(item.distance_m)} • {formatDuration(item.duration_s)}
                     </Text>
-                    <Text style={styles.dateText}>
+                    <Text style={[styles.dateText, { color: theme.textMuted }]}>
                       {new Date(item.created_at).toLocaleDateString()}
                     </Text>
                   </View>
@@ -144,20 +154,22 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
                 {/* Actions */}
                 <View style={styles.actionColumn}>
                   <TouchableOpacity
-                    style={styles.actionBtn}
+                    style={[styles.actionBtn, { backgroundColor: theme.surface }]}
                     onPress={() => handleToggleFavorite(item.id)}
                     accessibilityLabel="Toggle Favorite"
                   >
-                    <Text style={styles.actionIcon}>
-                      {item.is_favorite === 1 ? '⭐' : '☆'}
-                    </Text>
+                    <AppIcon
+                      name="star"
+                      size={16}
+                      color={item.is_favorite === 1 ? theme.warning : theme.textMuted}
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.actionBtn}
+                    style={[styles.actionBtn, { backgroundColor: theme.dangerLight }]}
                     onPress={() => handleDelete(item.id, item.title)}
                     accessibilityLabel="Delete Journey"
                   >
-                    <Text style={styles.deleteIcon}>🗑️</Text>
+                    <AppIcon name="trash" size={16} color={theme.danger} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -172,78 +184,85 @@ export const SavedJourneysModal: React.FC<SavedJourneysModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B132B',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: (StatusBar.currentHeight || 28) + 8,
-    paddingBottom: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAFC',
   },
   closeButton: {
-    backgroundColor: '#0284C7',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
   },
   closeText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   listContent: {
     padding: 16,
+    gap: 12,
   },
   card: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
+    borderRadius: 14,
+    padding: 14,
     flexDirection: 'row',
-    marginBottom: 12,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1E293B',
-    overflow: 'hidden',
   },
   cardMain: {
     flex: 1,
-    padding: 14,
+    marginRight: 12,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F1F5F9',
     flex: 1,
     marginRight: 8,
   },
   scoreBadge: {
-    backgroundColor: '#0369A1',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   scoreText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#E0F2FE',
+    fontWeight: '800',
   },
   cardLocations: {
     fontSize: 12,
-    color: '#38BDF8',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   cardMetrics: {
     flexDirection: 'row',
@@ -252,49 +271,19 @@ const styles = StyleSheet.create({
   },
   metricText: {
     fontSize: 11,
-    color: '#94A3B8',
+    fontWeight: '500',
   },
   dateText: {
-    fontSize: 10,
-    color: '#64748B',
+    fontSize: 11,
   },
   actionColumn: {
-    width: 48,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
     gap: 8,
   },
   actionBtn: {
-    padding: 6,
-  },
-  actionIcon: {
-    fontSize: 16,
-  },
-  deleteIcon: {
-    fontSize: 14,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F1F5F9',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    textAlign: 'center',
-    lineHeight: 20,
+    justifyContent: 'center',
   },
 });
-

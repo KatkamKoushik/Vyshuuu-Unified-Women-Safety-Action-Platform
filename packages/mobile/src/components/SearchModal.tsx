@@ -15,6 +15,7 @@ import type { LocationPoint } from '../services/geocodingService';
 import { getRecentSearches, RecentSearch, getSavedJourneys, SavedJourney } from '../services/storageService';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { AppIcon } from './common/AppIcon';
 
 interface SearchModalProps {
   visible: boolean;
@@ -215,7 +216,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 accessibilityLabel="Clear search query"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={[styles.clearBtnText, { color: theme.textMuted }]}>✕</Text>
+                <AppIcon name="close" size={14} color={theme.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -227,25 +228,25 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => setSearchQuery('park')}
           >
-            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Park]</Text>
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>Near Park</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => setSearchQuery('pharmacy')}
           >
-            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Pharmacy]</Text>
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>Near Pharmacy</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => setSearchQuery('metro')}
           >
-            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Transit]</Text>
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>Near Transit</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.essentialPill, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => setSearchQuery('police')}
           >
-            <Text style={[styles.essentialPillText, { color: theme.primary }]}>[Near Police]</Text>
+            <Text style={[styles.essentialPillText, { color: theme.primary }]}>Near Police</Text>
           </TouchableOpacity>
         </View>
 

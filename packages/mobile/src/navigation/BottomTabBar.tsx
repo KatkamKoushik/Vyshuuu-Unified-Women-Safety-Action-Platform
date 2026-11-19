@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { AppIcon, IconName } from '../components/common/AppIcon';
 
 export type ActiveTab = 'explore' | 'navigate' | 'protect' | 'act' | 'saved';
 
@@ -25,16 +26,16 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const { theme } = useTheme();
   const { t } = useLanguage();
 
-  const tabs: { key: ActiveTab; label: string; tag: string; badge?: string }[] = [
+  const tabs: { key: ActiveTab; label: string; icon: IconName; badge?: string }[] = [
     {
       key: 'explore',
       label: t.moveTab || 'Move',
-      tag: 'NAV',
-      badge: hasActiveRoute ? 'ACTIVE' : undefined,
+      icon: 'compass',
+      badge: hasActiveRoute ? 'LIVE' : undefined,
     },
-    { key: 'protect', label: t.protectTab || 'Protect', tag: 'SHIELD' },
-    { key: 'act', label: t.actTab || 'Act', tag: 'LEGAL' },
-    { key: 'saved', label: t.vaultTab || 'Vault', tag: 'VAULT' },
+    { key: 'protect', label: t.protectTab || 'Protect', icon: 'shield' },
+    { key: 'act', label: t.actTab || 'Act', icon: 'legal' },
+    { key: 'saved', label: t.vaultTab || 'Vault', icon: 'vault' },
   ];
 
   return (
@@ -52,13 +53,17 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           const isActive =
             activeTab === tab.key || (tab.key === 'explore' && activeTab === 'navigate');
 
+          const iconColor = isActive ? theme.primary : theme.textMuted;
+
           return (
             <TouchableOpacity
               key={tab.key}
               style={[
                 styles.tabButton,
                 isActive && {
-                  backgroundColor: theme.isDark ? 'rgba(56, 189, 248, 0.12)' : theme.surface,
+                  backgroundColor: theme.isDark
+                    ? 'rgba(56, 189, 248, 0.12)'
+                    : theme.surface,
                 },
               ]}
               onPress={() => onTabChange(tab.key)}
@@ -69,14 +74,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
             >
               <View style={styles.iconWrapper}>
-                <Text
-                  style={[
-                    styles.tabTag,
-                    { color: isActive ? theme.primary : theme.textMuted },
-                  ]}
-                >
-                  [{tab.tag}]
-                </Text>
+                <AppIcon name={tab.icon} size={20} color={iconColor} />
                 {tab.badge && (
                   <View style={[styles.tabBadge, { backgroundColor: theme.primary }]}>
                     <Text style={styles.tabBadgeText}>{tab.badge}</Text>
@@ -86,7 +84,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: isActive ? theme.primary : theme.textMuted },
+                  { color: iconColor },
                   isActive && styles.tabLabelActive,
                 ]}
               >
@@ -108,9 +106,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 const styles = StyleSheet.create({
   tabBarContainer: {
     borderTopWidth: 1,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
     paddingTop: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     zIndex: 99,
   },
   tabBarInner: {
@@ -119,36 +117,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabButton: {
-    minWidth: 64,
-    minHeight: 46,
+    minWidth: 70,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  tabTag: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    height: 22,
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 3,
+    letterSpacing: -0.2,
   },
   tabLabelActive: {
     fontWeight: '800',
   },
   tabBadge: {
     position: 'absolute',
-    top: -6,
-    right: -24,
+    top: -5,
+    right: -20,
     borderRadius: 6,
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -162,6 +157,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 2,
+    marginTop: 3,
   },
 });

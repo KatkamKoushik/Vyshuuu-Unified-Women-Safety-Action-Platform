@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from '../components/common/AppIcon';
 import type { ContextScoreBreakdown } from '../../../core/services/contextScoringService';
 
 interface NavigateScreenProps {
@@ -99,6 +101,7 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
   onRecalculateRoute,
   onOpenSos,
 }) => {
+  const { theme } = useTheme();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'searching' | 'active' | 'unavailable'>('searching');
@@ -255,8 +258,8 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
     if (text.includes('left')) return '↰';
     if (text.includes('right')) return '↱';
     if (text.includes('uturn')) return '↶';
-    if (text.includes('arrive') || text.includes('destination')) return '🏁';
-    if (text.includes('depart') || text.includes('start')) return '🚶';
+    if (text.includes('arrive') || text.includes('destination')) return '●';
+    if (text.includes('depart') || text.includes('start')) return '↑';
     return '↑';
   };
 
@@ -274,15 +277,15 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
   // Empty state when no route is selected
   if (!activeRoute) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>🧭</Text>
-          <Text style={styles.emptyTitle}>No Active Walking Route</Text>
-          <Text style={styles.emptyDesc}>
+      <View style={[styles.emptyContainer, { backgroundColor: theme.bg }]}>
+        <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <AppIcon name="nav" size={48} color={theme.textMuted} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>No Active Walking Route</Text>
+          <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>
             Select an origin and destination on the map to begin live turn-by-turn walking guidance.
           </Text>
           <TouchableOpacity
-            style={styles.exploreCTA}
+            style={[styles.exploreCTA, { backgroundColor: theme.primary }]}
             onPress={onOpenExplore}
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -320,19 +323,19 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
   const nextManeuverModifier = nextStep?.maneuver?.modifier || nextStep?.maneuverModifier || nextStep?.modifier;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Top GPS Status & Off-Route Alert Strip */}
-      <View style={styles.gpsStatusStrip}>
+      <View style={[styles.gpsStatusStrip, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={styles.gpsBadge}>
           <Text
             style={[
               styles.gpsDot,
-              { color: gpsStatus === 'active' ? '#10B981' : gpsStatus === 'searching' ? '#F59E0B' : '#64748B' },
+              { color: gpsStatus === 'active' ? theme.success : gpsStatus === 'searching' ? theme.warning : theme.textMuted },
             ]}
           >
             ●
           </Text>
-          <Text style={styles.gpsText}>
+          <Text style={[styles.gpsText, { color: theme.textSecondary }]}>
             {gpsStatus === 'active'
               ? 'GPS Active (Auto-Advancing)'
               : gpsStatus === 'searching'
@@ -344,16 +347,16 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
 
       {/* Off-Route Alert Banner with 1-Tap Dynamic Re-Route */}
       {offRouteMeters !== null && offRouteMeters > 30 && (
-        <View style={styles.offRouteBanner}>
+        <View style={[styles.offRouteBanner, { backgroundColor: theme.warningLight, borderColor: theme.warning }]}>
           <View style={styles.offRouteTextWrap}>
-            <Text style={styles.offRouteIcon}>⚠️</Text>
-            <Text style={styles.offRouteText}>
+            <AppIcon name="alert" size={16} color={theme.warning} />
+            <Text style={[styles.offRouteText, { color: theme.warning }]}>
               Off-Route (~{offRouteMeters}m away). Realign or recalculate corridor.
             </Text>
           </View>
           {onRecalculateRoute && userLocation && (
             <TouchableOpacity
-              style={styles.rerouteBtn}
+              style={[styles.rerouteBtn, { backgroundColor: theme.warning }]}
               onPress={handleTriggerReroute}
               disabled={isRerouting}
               accessibilityRole="button"
@@ -362,7 +365,10 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
               {isRerouting ? (
                 <ActivityIndicator size="small" color="#090D16" />
               ) : (
-                <Text style={styles.rerouteBtnText}>⚡ Re-Route</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <AppIcon name="refresh" size={12} color="#090D16" />
+                  <Text style={styles.rerouteBtnText}>Re-Route</Text>
+                </View>
               )}
             </TouchableOpacity>
           )}
@@ -536,7 +542,10 @@ export const NavigateScreen: React.FC<NavigateScreenProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Open Emergency SOS Hub and 112 Dialer"
         >
-          <Text style={styles.emergencyBtnText}>🚨 Emergency SOS / 112</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <AppIcon name="alert" size={16} color="#FFFFFF" />
+            <Text style={styles.emergencyBtnText}>Emergency SOS / 112</Text>
+          </View>
           <Text style={styles.emergencyBtnSubtext}>Live GPS & Helplines</Text>
         </TouchableOpacity>
       </View>

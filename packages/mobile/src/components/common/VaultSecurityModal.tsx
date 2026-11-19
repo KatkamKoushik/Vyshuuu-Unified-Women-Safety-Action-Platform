@@ -10,6 +10,8 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { getSecuritySetting, setSecuritySetting } from '../../services/storageService';
 import { hashSha256 } from '@walking-companion/core';
+import { useTheme } from '../../theme/ThemeContext';
+import { AppIcon } from './AppIcon';
 
 interface VaultSecurityModalProps {
   visible: boolean;
@@ -30,6 +32,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
   mode: initialMode = 'verify',
   title,
 }) => {
+  const { theme } = useTheme();
   const [activeMode, setActiveMode] = useState<'verify' | 'setup'>(initialMode);
   const [pin, setPin] = useState('');
   const [storedPinHash, setStoredPinHash] = useState<string | null>(null);
@@ -204,10 +207,16 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          <Text style={styles.icon}>{lockoutTimer > 0 ? '⏳' : '🔒'}</Text>
-          <Text style={styles.heading}>{getHeading()}</Text>
-          <Text style={[styles.subheading, lockoutTimer > 0 && styles.lockoutText]}>
+        <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={{ marginBottom: 12, alignItems: 'center' }}>
+            <AppIcon
+              name={lockoutTimer > 0 ? 'alert' : 'lock'}
+              size={36}
+              color={lockoutTimer > 0 ? theme.warning : theme.primary}
+            />
+          </View>
+          <Text style={[styles.heading, { color: theme.text }]}>{getHeading()}</Text>
+          <Text style={[styles.subheading, { color: theme.textSecondary }, lockoutTimer > 0 && styles.lockoutText]}>
             {getSubheading()}
           </Text>
 
@@ -218,7 +227,8 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
                 key={idx}
                 style={[
                   styles.dot,
-                  pin.length > idx && styles.dotFilled,
+                  { borderColor: theme.border, backgroundColor: theme.surface },
+                  pin.length > idx && [styles.dotFilled, { backgroundColor: theme.primary, borderColor: theme.primary }],
                   lockoutTimer > 0 && styles.dotDisabled,
                 ]}
               />
@@ -237,6 +247,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
                   key={`key_${idx}`}
                   style={[
                     styles.keyBtn,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
                     isDelete && styles.keyDelete,
                     lockoutTimer > 0 && styles.keyBtnDisabled,
                   ]}
@@ -247,6 +258,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
                   <Text
                     style={[
                       styles.keyText,
+                      { color: theme.text },
                       isDelete && styles.keyDeleteText,
                       lockoutTimer > 0 && styles.keyTextDisabled,
                     ]}
@@ -259,16 +271,16 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
           </View>
 
           {/* Storage Architecture Disclosure */}
-          <View style={styles.disclosureCard}>
-            <Text style={styles.disclosureText}>
-              🛡️ Hardware Security Notice: PIN gates on-device UI display. Enable device OS lockscreen
+          <View style={[styles.disclosureCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.disclosureText, { color: theme.textSecondary }]}>
+              [NOTICE] Hardware Security Notice: PIN gates on-device UI display. Enable device OS lockscreen
               encryption in system settings for hardware-level storage protection.
             </Text>
           </View>
 
           {/* Cancel Button */}
-          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-            <Text style={styles.cancelBtnText}>Cancel</Text>
+          <TouchableOpacity style={[styles.cancelBtn, { borderColor: theme.border }]} onPress={onCancel}>
+            <Text style={[styles.cancelBtnText, { color: theme.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>

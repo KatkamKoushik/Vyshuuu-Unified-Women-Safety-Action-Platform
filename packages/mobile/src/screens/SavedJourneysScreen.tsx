@@ -21,6 +21,8 @@ import {
   SavedIncident,
   SavedGrievance,
 } from '../services/storageService';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from '../components/common/AppIcon';
 
 interface SavedJourneysScreenProps {
   onSelectJourney: (saved: SavedJourney) => void;
@@ -31,6 +33,7 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
   onSelectJourney,
   onOpenPrivacySettings,
 }) => {
+  const { theme } = useTheme();
   const [activeSubTab, setActiveSubTab] = useState<'corridors' | 'vault'>('corridors');
   const [journeys, setJourneys] = useState<SavedJourney[]>([]);
   const [incidents, setIncidents] = useState<SavedIncident[]>([]);
@@ -136,35 +139,53 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Top Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Local Vault & Privacy</Text>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Local Vault & Privacy</Text>
         <TouchableOpacity
-          style={styles.refreshBtn}
+          style={[styles.refreshBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={loadAllData}
           accessibilityLabel="Refresh local database list"
         >
-          <Text style={styles.refreshBtnText}>🔄</Text>
+          <AppIcon name="refresh" size={16} color={theme.primary} />
         </TouchableOpacity>
       </View>
 
       {/* Segmented Sub Tab Switcher */}
-      <View style={styles.subTabRow}>
+      <View style={[styles.subTabRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.subTabBtn, activeSubTab === 'corridors' && styles.subTabBtnActive]}
+          style={[
+            styles.subTabBtn,
+            activeSubTab === 'corridors' && { backgroundColor: theme.card, borderColor: theme.primary },
+          ]}
           onPress={() => setActiveSubTab('corridors')}
         >
-          <Text style={[styles.subTabText, activeSubTab === 'corridors' && styles.subTabTextActive]}>
+          <Text
+            style={[
+              styles.subTabText,
+              { color: theme.textMuted },
+              activeSubTab === 'corridors' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             Saved Corridors ({journeys.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.subTabBtn, activeSubTab === 'vault' && styles.subTabBtnActive]}
+          style={[
+            styles.subTabBtn,
+            activeSubTab === 'vault' && { backgroundColor: theme.card, borderColor: theme.primary },
+          ]}
           onPress={() => setActiveSubTab('vault')}
         >
-          <Text style={[styles.subTabText, activeSubTab === 'vault' && styles.subTabTextActive]}>
+          <Text
+            style={[
+              styles.subTabText,
+              { color: theme.textMuted },
+              activeSubTab === 'vault' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             Evidence & Cases ({incidents.length + grievances.length})
           </Text>
         </TouchableOpacity>
@@ -176,13 +197,13 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
         showsVerticalScrollIndicator={false}
       >
         {/* On-Device Local Storage Guarantee Banner */}
-        <View style={styles.privacyCard}>
-          <View style={styles.privacyIconCircle}>
-            <Text style={styles.privacyIcon}>🛡️</Text>
+        <View style={[styles.privacyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={[styles.privacyIconCircle, { backgroundColor: theme.surface }]}>
+            <AppIcon name="shield" size={18} color={theme.primary} />
           </View>
           <View style={styles.privacyTextCol}>
-            <Text style={styles.privacyTitle}>Zero-Telemetry On-Device Storage</Text>
-            <Text style={styles.privacyDesc}>
+            <Text style={[styles.privacyTitle, { color: theme.text }]}>Zero-Telemetry On-Device Storage</Text>
+            <Text style={[styles.privacyDesc, { color: theme.textSecondary }]}>
               All saved corridors, incident evidence logs, and statutory petitions are stored exclusively on this device.
             </Text>
           </View>
@@ -193,49 +214,53 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
           <View>
             {journeys.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>🗺️</Text>
-                <Text style={styles.emptyTitle}>No Saved Routes Yet</Text>
-                <Text style={styles.emptyDesc}>
-                  When you plan a walking route, tap "Save Corridor" to save it offline here.
+                <AppIcon name="nav" size={40} color={theme.textMuted} />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>No Saved Routes Yet</Text>
+                <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>
+                  When you plan a walking route, tap "Save" to keep it stored offline here.
                 </Text>
               </View>
             ) : (
               journeys.map((item) => (
-                <View key={item.id} style={styles.journeyCard}>
+                <View key={item.id} style={[styles.journeyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <View style={styles.cardHeader}>
                     <View style={styles.titleCol}>
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                      <Text style={styles.cardTimestamp}>
+                      <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
+                      <Text style={[styles.cardTimestamp, { color: theme.textMuted }]}>
                         {new Date(item.created_at).toLocaleDateString()}
                       </Text>
                     </View>
                     <View style={styles.actionIconsRow}>
                       <TouchableOpacity
                         onPress={() => handleToggleFav(item.id)}
-                        style={styles.iconBtn}
+                        style={[styles.iconBtn, { backgroundColor: theme.surface }]}
                       >
-                        <Text style={styles.actionIcon}>{item.is_favorite === 1 ? '⭐' : '☆'}</Text>
+                        <AppIcon
+                          name="star"
+                          size={15}
+                          color={item.is_favorite === 1 ? theme.warning : theme.textMuted}
+                        />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDeleteJourney(item.id)}
-                        style={styles.iconBtn}
+                        style={[styles.iconBtn, { backgroundColor: theme.dangerLight }]}
                       >
-                        <Text style={styles.actionIcon}>🗑️</Text>
+                        <AppIcon name="trash" size={15} color={theme.danger} />
                       </TouchableOpacity>
                     </View>
                   </View>
 
                   <View style={styles.metricsRow}>
-                    <Text style={styles.metricItem}>📏 {formatDistance(item.distance_m)}</Text>
-                    <Text style={styles.metricItem}>⏱️ {formatDuration(item.duration_s)}</Text>
-                    <Text style={styles.metricItem}>✨ {item.context_score}% Coverage</Text>
+                    <Text style={[styles.metricItem, { color: theme.textSecondary }]}>
+                      {formatDistance(item.distance_m)} • {formatDuration(item.duration_s)} • {item.context_score}% Coverage
+                    </Text>
                   </View>
 
                   <TouchableOpacity
-                    style={styles.loadRouteBtn}
+                    style={[styles.loadRouteBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                     onPress={() => onSelectJourney(item)}
                   >
-                    <Text style={styles.loadRouteBtnText}>View Corridor on Map ➔</Text>
+                    <Text style={[styles.loadRouteBtnText, { color: theme.primary }]}>View Corridor on Map →</Text>
                   </TouchableOpacity>
                 </View>
               ))
@@ -247,49 +272,59 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
         {activeSubTab === 'vault' && (
           <View>
             {/* Incident Records */}
-            <Text style={styles.sectionHeader}>INCIDENT EVIDENCE RECORDS ({incidents.length})</Text>
+            <Text style={[styles.sectionHeader, { color: theme.textMuted }]}>
+              INCIDENT EVIDENCE RECORDS ({incidents.length})
+            </Text>
             {incidents.length === 0 ? (
-              <View style={styles.miniEmpty}>
-                <Text style={styles.miniEmptyText}>No incidents logged in local vault.</Text>
+              <View style={[styles.miniEmpty, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.miniEmptyText, { color: theme.textMuted }]}>No incidents logged in local vault.</Text>
               </View>
             ) : (
               incidents.map((inc) => (
-                <View key={inc.id} style={styles.vaultItemCard}>
+                <View key={inc.id} style={[styles.vaultItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <View style={styles.vaultTop}>
-                    <View style={styles.platformBadge}>
-                      <Text style={styles.platformBadgeText}>{inc.platform}</Text>
+                    <View style={[styles.platformBadge, { backgroundColor: theme.primaryLight }]}>
+                      <Text style={[styles.platformBadgeText, { color: theme.primary }]}>{inc.platform}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => handleDeleteIncident(inc.id)}>
-                      <Text style={styles.deleteMini}>🗑️</Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteIncident(inc.id)}
+                      style={[styles.iconBtn, { backgroundColor: theme.dangerLight, width: 28, height: 28 }]}
+                    >
+                      <AppIcon name="trash" size={13} color={theme.danger} />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.vaultSender}>Sender: {inc.sender_handle}</Text>
-                  <Text style={styles.vaultQuote}>"{inc.message_content}"</Text>
-                  <Text style={styles.vaultHash} numberOfLines={1}>SHA-256: {inc.hash}</Text>
+                  <Text style={[styles.vaultSender, { color: theme.textSecondary }]}>Sender: {inc.sender_handle}</Text>
+                  <Text style={[styles.vaultQuote, { color: theme.text }]}>"{inc.message_content}"</Text>
+                  <Text style={[styles.vaultHash, { color: theme.textMuted }]} numberOfLines={1}>SHA-256: {inc.hash}</Text>
                 </View>
               ))
             )}
 
             {/* Statutory Grievance Cases */}
-            <Text style={[styles.sectionHeader, { marginTop: 16 }]}>STATUTORY GRIEVANCE PETITIONS ({grievances.length})</Text>
+            <Text style={[styles.sectionHeader, { marginTop: 16, color: theme.textMuted }]}>
+              STATUTORY GRIEVANCE PETITIONS ({grievances.length})
+            </Text>
             {grievances.length === 0 ? (
-              <View style={styles.miniEmpty}>
-                <Text style={styles.miniEmptyText}>No grievances saved in local vault.</Text>
+              <View style={[styles.miniEmpty, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.miniEmptyText, { color: theme.textMuted }]}>No grievances saved in local vault.</Text>
               </View>
             ) : (
               grievances.map((g) => (
-                <View key={g.id} style={styles.vaultItemCard}>
+                <View key={g.id} style={[styles.vaultItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <View style={styles.vaultTop}>
-                    <View style={styles.authBadge}>
-                      <Text style={styles.authBadgeText}>{g.authority_code}</Text>
+                    <View style={[styles.authBadge, { backgroundColor: theme.primaryLight }]}>
+                      <Text style={[styles.authBadgeText, { color: theme.primary }]}>{g.authority_code}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => handleDeleteGrievance(g.id)}>
-                      <Text style={styles.deleteMini}>🗑️</Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteGrievance(g.id)}
+                      style={[styles.iconBtn, { backgroundColor: theme.dangerLight, width: 28, height: 28 }]}
+                    >
+                      <AppIcon name="trash" size={13} color={theme.danger} />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.vaultTitle}>{g.title}</Text>
-                  <Text style={styles.vaultInstitution}>{g.institution_name} • {g.hostel_location}</Text>
-                  <Text style={styles.vaultStatus}>Status: {g.status}</Text>
+                  <Text style={[styles.vaultTitle, { color: theme.text }]}>{g.title}</Text>
+                  <Text style={[styles.vaultInstitution, { color: theme.textSecondary }]}>{g.institution_name} • {g.hostel_location}</Text>
+                  <Text style={[styles.vaultStatus, { color: theme.primary }]}>Status: {g.status}</Text>
                 </View>
               ))
             )}
@@ -297,25 +332,27 @@ export const SavedJourneysScreen: React.FC<SavedJourneysScreenProps> = ({
         )}
 
         {/* 1-Tap Hard Wipe & Privacy Controls */}
-        <View style={styles.dangerZoneCard}>
-          <Text style={styles.dangerTitle}>Emergency Panic Wipe</Text>
-          <Text style={styles.dangerSubtitle}>
+        <View style={[styles.dangerZoneCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.dangerTitle, { color: theme.danger }]}>Emergency Panic Wipe</Text>
+          <Text style={[styles.dangerSubtitle, { color: theme.textSecondary }]}>
             Permanently purges all saved corridors, search logs, incident records, and statutory grievances with SQLite VACUUM.
           </Text>
 
           <View style={styles.dangerActionsRow}>
             <TouchableOpacity
-              style={styles.settingsSheetBtn}
+              style={[styles.settingsSheetBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={onOpenPrivacySettings}
             >
-              <Text style={styles.settingsSheetBtnText}>⚙️ Settings</Text>
+              <AppIcon name="settings" size={14} color={theme.text} />
+              <Text style={[styles.settingsSheetBtnText, { color: theme.text }]}>Settings</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.hardWipeBtn}
+              style={[styles.hardWipeBtn, { backgroundColor: theme.danger }]}
               onPress={handleClearAllData}
             >
-              <Text style={styles.hardWipeBtnText}>🚨 1-Tap Hard Wipe</Text>
+              <AppIcon name="alert" size={14} color="#FFFFFF" />
+              <Text style={styles.hardWipeBtnText}>1-Tap Hard Wipe</Text>
             </TouchableOpacity>
           </View>
         </View>

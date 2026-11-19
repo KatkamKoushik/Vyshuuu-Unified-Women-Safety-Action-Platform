@@ -1,21 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ContextScoreBreakdown } from '@walking-companion/core';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 
 interface ContextScoreCardProps {
   score: ContextScoreBreakdown;
 }
 
 export const ContextScoreCard: React.FC<ContextScoreCardProps> = ({ score }) => {
+  const { theme } = useTheme();
+
   const getBadgeColor = (label: string) => {
     switch (label) {
       case 'Comprehensive':
-        return '#10B981'; // emerald
+        return theme.success;
       case 'Moderate':
-        return '#F59E0B'; // amber
+        return theme.warning;
       case 'Sparse':
       default:
-        return '#64748B'; // slate
+        return theme.textMuted;
     }
   };
 
@@ -23,17 +27,27 @@ export const ContextScoreCard: React.FC<ContextScoreCardProps> = ({ score }) => 
   const walkingCond = score.walkingConditions;
   const daylightColor =
     score.daylightState === 'DAYLIGHT'
-      ? '#FBBF24'
+      ? theme.warning
       : score.daylightState.includes('TWILIGHT')
       ? '#F97316'
-      : '#818CF8';
+      : theme.primary;
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       <View style={styles.headerRow}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{score.scoreName || 'Route Information Coverage'}</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {score.scoreName || 'Route Information Coverage'}
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {score.amenitiesCount} mapped facilities • {score.imageryScope === 'route_corridor_sampled' ? 'Corridor Sampled' : 'Near Origin'}
           </Text>
         </View>
@@ -44,69 +58,93 @@ export const ContextScoreCard: React.FC<ContextScoreCardProps> = ({ score }) => 
       </View>
 
       {/* Section 1: Objective Data Availability (0-100%) */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>MAPPED DATA AVAILABILITY</Text>
-        <Text style={styles.sectionSub}>Invariant across day/night</Text>
+      <View style={[styles.sectionHeader, { borderBottomColor: theme.borderLight }]}>
+        <Text style={[styles.sectionTitle, { color: theme.primary }]}>MAPPED DATA AVAILABILITY</Text>
+        <Text style={[styles.sectionSub, { color: theme.textMuted }]}>Invariant across day/night</Text>
       </View>
 
       <View style={styles.metricsContainer}>
         {/* Amenity Density */}
         <View style={styles.metricRow}>
           <View style={styles.metricLabelRow}>
-            <Text style={styles.metricLabel}>Mapped OSM Infrastructure</Text>
-            <Text style={styles.metricValue}>{score.amenityScore}/50 pts ({score.amenityDensityPer100m}/100m)</Text>
+            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Mapped OSM Infrastructure</Text>
+            <Text style={[styles.metricValue, { color: theme.textMuted }]}>
+              {score.amenityScore}/50 pts ({score.amenityDensityPer100m}/100m)
+            </Text>
           </View>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${(score.amenityScore / 50) * 100}%`, backgroundColor: '#38BDF8' }]} />
+          <View style={[styles.progressBarBackground, { backgroundColor: theme.surface }]}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${(score.amenityScore / 50) * 100}%`, backgroundColor: theme.primary },
+              ]}
+            />
           </View>
         </View>
 
         {/* Street Imagery */}
         <View style={styles.metricRow}>
           <View style={styles.metricLabelRow}>
-            <Text style={styles.metricLabel}>{score.imageryLabel || 'Street-Level Imagery'}</Text>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>
+              {score.imageryLabel || 'Street-Level Imagery'}
+            </Text>
+            <Text style={[styles.metricValue, { color: theme.textMuted }]}>
               {score.hasStreetImagery ? `${score.imageryScore}/50 pts (Panoramax)` : '0/50 pts (No coverage)'}
             </Text>
           </View>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${(score.imageryScore / 50) * 100}%`, backgroundColor: '#A78BFA' }]} />
+          <View style={[styles.progressBarBackground, { backgroundColor: theme.surface }]}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${(score.imageryScore / 50) * 100}%`, backgroundColor: theme.accent },
+              ]}
+            />
           </View>
         </View>
       </View>
 
-      {/* Section 2: Real-Time Walking Conditions (Reported separately) */}
-      <View style={styles.conditionsBox}>
+      {/* Section 2: Real-Time Walking Conditions */}
+      <View
+        style={[
+          styles.conditionsBox,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
+      >
         <View style={styles.conditionsHeader}>
-          <Text style={styles.conditionsTitle}>REAL-TIME WALKING CONDITIONS</Text>
-          <View style={[styles.conditionPill, { backgroundColor: daylightColor + '22', borderColor: daylightColor }]}>
+          <Text style={[styles.conditionsTitle, { color: theme.textSecondary }]}>REAL-TIME WALKING CONDITIONS</Text>
+          <View style={[styles.conditionPill, { backgroundColor: daylightColor + '1A', borderColor: daylightColor }]}>
             <Text style={[styles.conditionPillText, { color: daylightColor }]}>
               {walkingCond?.conditionLabel || score.daylightState}
             </Text>
           </View>
         </View>
-        <Text style={styles.conditionsElevation}>
+        <Text style={[styles.conditionsElevation, { color: theme.textSecondary }]}>
           Astronomical solar elevation: {score.solarElevationDeg > 0 ? `+${score.solarElevationDeg.toFixed(1)}°` : `${score.solarElevationDeg.toFixed(1)}°`} (NOAA solar algorithm)
         </Text>
-        <Text style={styles.conditionsAdvisory}>
+        <Text style={[styles.conditionsAdvisory, { color: theme.textMuted }]}>
           {walkingCond?.advisory || 'Walking conditions evaluate environmental ambient light independently from mapped data coverage.'}
         </Text>
       </View>
 
-      {/* Missing Data / Gaps Notices */}
+      {/* Missing Data Notices */}
       {score.missingDataNotices.length > 0 && (
-        <View style={styles.missingContainer}>
+        <View style={[styles.missingContainer, { backgroundColor: theme.warningLight, borderColor: theme.warning }]}>
           {score.missingDataNotices.map((notice, index) => (
-            <Text key={index} style={styles.missingText}>ℹ️ {notice}</Text>
+            <Text key={index} style={[styles.missingText, { color: theme.warning }]}>
+              [NOTE] {notice}
+            </Text>
           ))}
         </View>
       )}
 
-      {/* Mandatory Honest Disclaimers */}
-      <View style={styles.disclaimerContainer}>
-        <Text style={styles.disclaimerText}>{score.disclaimer}</Text>
-        <Text style={styles.groundTruthNotice}>
-          ⚠️ Ground verification notice: Crowd-sourced OpenStreetMap features and opening hours may be outdated or unverified on the ground.
+      {/* Honest Disclaimers */}
+      <View style={[styles.disclaimerContainer, { borderTopColor: theme.borderLight }]}>
+        <Text style={[styles.disclaimerText, { color: theme.textMuted }]}>{score.disclaimer}</Text>
+        <Text style={[styles.groundTruthNotice, { color: theme.warning }]}>
+          [NOTICE] Ground verification: Crowd-sourced OpenStreetMap features and opening hours may be outdated or unverified on the ground.
         </Text>
       </View>
     </View>
@@ -115,12 +153,10 @@ export const ContextScoreCard: React.FC<ContextScoreCardProps> = ({ score }) => 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1E293B',
     borderRadius: 14,
     padding: 14,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -135,11 +171,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F8FAFC',
   },
   subtitle: {
     fontSize: 12,
-    color: '#94A3B8',
     marginTop: 2,
   },
   badge: {
@@ -157,7 +191,7 @@ const styles = StyleSheet.create({
   badgeLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
   },
   sectionHeader: {
@@ -168,17 +202,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: '#38BDF8',
   },
   sectionSub: {
     fontSize: 10,
-    color: '#64748B',
   },
   metricsContainer: {
     marginVertical: 4,
@@ -194,16 +225,13 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#CBD5E1',
   },
   metricValue: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#94A3B8',
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: '#090D16',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -212,12 +240,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   conditionsBox: {
-    backgroundColor: '#0F172A',
     borderRadius: 10,
     padding: 10,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   conditionsHeader: {
     flexDirection: 'row',
@@ -229,7 +255,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.6,
-    color: '#94A3B8',
   },
   conditionPill: {
     paddingHorizontal: 8,
@@ -243,18 +268,14 @@ const styles = StyleSheet.create({
   },
   conditionsElevation: {
     fontSize: 11,
-    color: '#CBD5E1',
     marginBottom: 4,
   },
   conditionsAdvisory: {
     fontSize: 11,
-    color: '#94A3B8',
     lineHeight: 15,
   },
   missingContainer: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
     padding: 10,
     borderRadius: 8,
     marginTop: 4,
@@ -262,25 +283,20 @@ const styles = StyleSheet.create({
   },
   missingText: {
     fontSize: 11,
-    color: '#F59E0B',
     lineHeight: 16,
   },
   disclaimerContainer: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     paddingTop: 8,
   },
   disclaimerText: {
     fontSize: 10,
-    color: '#64748B',
     fontStyle: 'italic',
     lineHeight: 14,
   },
   groundTruthNotice: {
     fontSize: 10,
-    color: '#F59E0B',
     marginTop: 4,
     lineHeight: 14,
   },
 });
-

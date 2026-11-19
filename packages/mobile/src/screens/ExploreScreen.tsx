@@ -10,6 +10,8 @@ import {
 import { MapComponent } from '../components/MapComponent';
 import { RouteBottomSheet } from '../components/RouteBottomSheet';
 import { SearchModal } from '../components/SearchModal';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from '../components/common/AppIcon';
 import type { LocationPoint } from '../services/geocodingService';
 import type { ContextScoreBreakdown } from '../../../core/services/contextScoringService';
 
@@ -80,6 +82,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   onSaveRoute,
   onOpenPrivacy,
 }) => {
+  const { theme } = useTheme();
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAmenitiesOnMap, setShowAmenitiesOnMap] = useState(true);
   const [showPhotosOnMap, setShowPhotosOnMap] = useState(true);
@@ -91,7 +94,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Edge-to-Edge Map View */}
       <View style={styles.mapContainer}>
         <MapComponent
@@ -106,17 +109,35 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
         {/* Loading Indicator Overlay */}
         {isLoadingRoutes && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#38BDF8" />
-            <Text style={styles.loadingText}>Calculating walking routes...</Text>
+          <View
+            style={[
+              styles.loadingOverlay,
+              {
+                backgroundColor: theme.isDark
+                  ? 'rgba(9, 13, 22, 0.75)'
+                  : 'rgba(255, 255, 255, 0.85)',
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.text }]}>
+              Calculating walking routes...
+            </Text>
           </View>
         )}
       </View>
 
-      {/* Floating Glassmorphic Top Capsule (Safe Area aware) */}
+      {/* Floating Top Capsule (Theme aware) */}
       <View style={styles.topCapsuleWrapper}>
         <TouchableOpacity
-          style={styles.topCapsule}
+          style={[
+            styles.topCapsule,
+            {
+              backgroundColor: theme.isDark ? theme.card : '#FFFFFF',
+              borderColor: theme.border,
+              shadowColor: theme.isDark ? '#000000' : '#64748B',
+            },
+          ]}
           activeOpacity={0.85}
           onPress={() => setShowSearchModal(true)}
           accessibilityRole="button"
@@ -124,21 +145,40 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         >
           <View style={styles.capsuleRouteCol}>
             <View style={styles.capsuleRow}>
-              <View style={[styles.dot, { backgroundColor: '#38BDF8' }]} />
-              <Text style={styles.capsuleText} numberOfLines={1}>
+              <View style={[styles.dot, { backgroundColor: theme.primary }]} />
+              <Text
+                style={[styles.capsuleText, { color: theme.text }]}
+                numberOfLines={1}
+              >
                 {origin ? origin.title : 'Choose start point'}
               </Text>
             </View>
-            <View style={styles.capsuleDivider} />
+            <View
+              style={[
+                styles.capsuleDivider,
+                { backgroundColor: theme.borderLight },
+              ]}
+            />
             <View style={styles.capsuleRow}>
-              <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-              <Text style={styles.capsuleText} numberOfLines={1}>
+              <View style={[styles.dot, { backgroundColor: theme.success }]} />
+              <Text
+                style={[
+                  styles.capsuleText,
+                  { color: destination ? theme.text : theme.textMuted },
+                ]}
+                numberOfLines={1}
+              >
                 {destination ? destination.title : 'Where to?'}
               </Text>
             </View>
           </View>
-          <View style={styles.searchButtonCircle}>
-            <Text style={styles.searchButtonIcon}>🔍</Text>
+          <View
+            style={[
+              styles.searchButtonCircle,
+              { backgroundColor: theme.primary },
+            ]}
+          >
+            <AppIcon name="search" size={18} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
       </View>
@@ -147,31 +187,64 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       <View style={styles.floatingControls}>
         {/* Recenter GPS */}
         <TouchableOpacity
-          style={styles.fabBtn}
+          style={[
+            styles.fabBtn,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+              shadowColor: theme.isDark ? '#000000' : '#64748B',
+            },
+          ]}
           onPress={handleUseGps}
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Recenter on current GPS location"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.fabIcon}>🎯</Text>
+          <AppIcon name="target" size={20} color={theme.text} />
         </TouchableOpacity>
 
         {/* Toggle Amenity Markers */}
         <TouchableOpacity
-          style={[styles.fabBtn, showAmenitiesOnMap && styles.fabBtnActive]}
+          style={[
+            styles.fabBtn,
+            {
+              backgroundColor: showAmenitiesOnMap
+                ? theme.isDark
+                  ? 'rgba(2, 132, 199, 0.25)'
+                  : theme.primaryLight
+                : theme.card,
+              borderColor: showAmenitiesOnMap ? theme.primary : theme.border,
+              shadowColor: theme.isDark ? '#000000' : '#64748B',
+            },
+          ]}
           onPress={() => setShowAmenitiesOnMap(!showAmenitiesOnMap)}
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Toggle amenity points on map"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.fabIcon}>🏪</Text>
+          <AppIcon
+            name="venue"
+            size={20}
+            color={showAmenitiesOnMap ? theme.primary : theme.textSecondary}
+          />
         </TouchableOpacity>
 
         {/* Toggle Street Photos */}
         <TouchableOpacity
-          style={[styles.fabBtn, showPhotosOnMap && styles.fabBtnActive]}
+          style={[
+            styles.fabBtn,
+            {
+              backgroundColor: showPhotosOnMap
+                ? theme.isDark
+                  ? 'rgba(2, 132, 199, 0.25)'
+                  : theme.primaryLight
+                : theme.card,
+              borderColor: showPhotosOnMap ? theme.primary : theme.border,
+              shadowColor: theme.isDark ? '#000000' : '#64748B',
+            },
+          ]}
           onPress={() => {
             setShowPhotosOnMap(!showPhotosOnMap);
             if (!imageryResult) checkStreetImagery();
@@ -181,7 +254,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           accessibilityLabel="Toggle street photos on map"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.fabIcon}>📷</Text>
+          <AppIcon
+            name="camera"
+            size={20}
+            color={showPhotosOnMap ? theme.primary : theme.textSecondary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -240,7 +317,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
     position: 'relative',
   },
   mapContainer: {
@@ -248,38 +324,33 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(9, 13, 22, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 50,
   },
   loadingText: {
-    color: '#F8FAFC',
     fontSize: 14,
     marginTop: 10,
     fontWeight: '600',
   },
   topCapsuleWrapper: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 48 : 24,
+    top: Platform.OS === 'ios' ? 48 : 20,
     left: 16,
     right: 16,
     zIndex: 80,
   },
   topCapsule: {
-    backgroundColor: 'rgba(19, 28, 46, 0.94)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
   },
   capsuleRouteCol: {
     flex: 1,
@@ -296,14 +367,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   capsuleText: {
-    color: '#F8FAFC',
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
   },
   capsuleDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginLeft: 16,
     marginVertical: 2,
   },
@@ -311,18 +380,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
   },
-  searchButtonIcon: {
-    fontSize: 16,
-  },
   floatingControls: {
     position: 'absolute',
     right: 16,
-    top: Platform.OS === 'ios' ? 140 : 116,
+    top: Platform.OS === 'ios' ? 140 : 112,
     zIndex: 80,
     gap: 12,
   },
@@ -330,22 +395,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(19, 28, 46, 0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  fabBtnActive: {
-    borderColor: '#38BDF8',
-    backgroundColor: 'rgba(2, 132, 199, 0.3)',
-  },
-  fabIcon: {
-    fontSize: 18,
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 4,
   },
 });

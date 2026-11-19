@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { BENCHMARK_POINTS, LocationPoint } from '../services/geocodingService';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 
 interface RoutePointsCardProps {
   origin: LocationPoint | null;
@@ -31,37 +33,59 @@ export function RoutePointsCard({
   onTestTimeout,
   onTestRateLimit,
 }: RoutePointsCardProps) {
+  const { theme } = useTheme();
+
   return (
-    <View style={styles.pointsCard}>
+    <View
+      style={[
+        styles.pointsCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       {/* Origin Row */}
       <TouchableOpacity
-        style={[styles.pointRow, searchTarget === 'origin' && styles.activePointRow]}
+        style={[
+          styles.pointRow,
+          { backgroundColor: theme.surface },
+          searchTarget === 'origin' && { borderColor: theme.primary, borderWidth: 1 },
+        ]}
         onPress={() => {
           setSearchTarget('origin');
           setSearchQuery('');
         }}
       >
-        <View style={[styles.pointDot, { backgroundColor: '#10B981' }]} />
-        <Text style={styles.pointLabel}>From:</Text>
-        <Text style={styles.pointValue} numberOfLines={1}>
+        <View style={[styles.pointDot, { backgroundColor: theme.success }]} />
+        <Text style={[styles.pointLabel, { color: theme.textSecondary }]}>From:</Text>
+        <Text style={[styles.pointValue, { color: theme.text }]} numberOfLines={1}>
           {origin?.title || 'Tap to select origin'}
         </Text>
-        <TouchableOpacity style={styles.gpsButton} onPress={onUseGps}>
-          <Text style={styles.gpsButtonText}>📍 GPS</Text>
+        <TouchableOpacity
+          style={[styles.gpsButton, { backgroundColor: theme.isDark ? theme.border : theme.surfaceHover }]}
+          onPress={onUseGps}
+        >
+          <AppIcon name="target" size={12} color={theme.primary} />
+          <Text style={[styles.gpsButtonText, { color: theme.primary }]}>GPS</Text>
         </TouchableOpacity>
       </TouchableOpacity>
 
       {/* Destination Row */}
       <TouchableOpacity
-        style={[styles.pointRow, searchTarget === 'destination' && styles.activePointRow]}
+        style={[
+          styles.pointRow,
+          { backgroundColor: theme.surface },
+          searchTarget === 'destination' && { borderColor: theme.primary, borderWidth: 1 },
+        ]}
         onPress={() => {
           setSearchTarget('destination');
           setSearchQuery('');
         }}
       >
-        <View style={[styles.pointDot, { backgroundColor: '#EF4444' }]} />
-        <Text style={styles.pointLabel}>To:</Text>
-        <Text style={styles.pointValue} numberOfLines={1}>
+        <View style={[styles.pointDot, { backgroundColor: theme.danger }]} />
+        <Text style={[styles.pointLabel, { color: theme.textSecondary }]}>To:</Text>
+        <Text style={[styles.pointValue, { color: theme.text }]} numberOfLines={1}>
           {destination?.title || 'Tap to select destination'}
         </Text>
       </TouchableOpacity>
@@ -69,55 +93,62 @@ export function RoutePointsCard({
       {/* Universal Search Box */}
       <View style={styles.searchRow}>
         <TextInput
-          style={styles.searchInput}
+          style={[
+            styles.searchInput,
+            {
+              backgroundColor: theme.surface,
+              color: theme.text,
+              borderColor: theme.border,
+            },
+          ]}
           placeholder={`Search ${searchTarget === 'origin' ? 'origin' : 'destination'} or landmark...`}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
       </View>
 
-      {/* Quick Benchmark & Pilot City Presets (Indian Hubs) */}
+      {/* Quick Benchmark Presets */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsBar}>
         <TouchableOpacity
-          style={styles.presetChip}
+          style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => onSelectPreset(BENCHMARK_POINTS[0], BENCHMARK_POINTS[1])}
         >
-          <Text style={styles.presetChipText}>🇮🇳 Hyderabad (Charminar → Madina)</Text>
+          <Text style={[styles.presetChipText, { color: theme.text }]}>Hyderabad: Charminar → Madina</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.presetChip}
+          style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => onSelectPreset(BENCHMARK_POINTS[2], BENCHMARK_POINTS[3])}
         >
-          <Text style={styles.presetChipText}>🇮🇳 Hyderabad (Hitec City → Cyber Towers)</Text>
+          <Text style={[styles.presetChipText, { color: theme.text }]}>Hyderabad: Hitec City → Cyber Towers</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.presetChip}
+          style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => onSelectPreset(BENCHMARK_POINTS[4], BENCHMARK_POINTS[5])}
         >
-          <Text style={styles.presetChipText}>🇮🇳 Bengaluru (MG Rd → Brigade Rd)</Text>
+          <Text style={[styles.presetChipText, { color: theme.text }]}>Bengaluru: MG Rd → Brigade Rd</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.presetChip}
+          style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => onSelectPreset(BENCHMARK_POINTS[8], BENCHMARK_POINTS[9])}
         >
-          <Text style={styles.presetChipText}>🇮🇳 Delhi (Rajiv Chowk → India Gate)</Text>
+          <Text style={[styles.presetChipText, { color: theme.text }]}>Delhi: Rajiv Chowk → India Gate</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.presetChip}
+          style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => onSelectPreset(BENCHMARK_POINTS[10], BENCHMARK_POINTS[11])}
         >
-          <Text style={styles.presetChipText}>🇮🇳 Mumbai (Bandra Stand → Carter Rd)</Text>
+          <Text style={[styles.presetChipText, { color: theme.text }]}>Mumbai: Bandra Stand → Carter Rd</Text>
         </TouchableOpacity>
 
         {__DEV__ && (
           <>
             <TouchableOpacity
-              style={[styles.presetChip, styles.testChip]}
+              style={[styles.presetChip, { backgroundColor: theme.warningLight, borderColor: theme.warning }]}
               onPress={() =>
                 onSelectPreset(
                   { title: 'Null Island', subtitle: 'Ocean', latitude: 0.0, longitude: 0.0 },
@@ -125,15 +156,21 @@ export function RoutePointsCard({
                 )
               }
             >
-              <Text style={styles.presetChipText}>🌊 Test Zero Route</Text>
+              <Text style={[styles.presetChipText, { color: theme.warning }]}>[TEST] Zero Route</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.presetChip, styles.testChip]} onPress={onTestTimeout}>
-              <Text style={styles.presetChipText}>⏱ Test Timeout</Text>
+            <TouchableOpacity
+              style={[styles.presetChip, { backgroundColor: theme.warningLight, borderColor: theme.warning }]}
+              onPress={onTestTimeout}
+            >
+              <Text style={[styles.presetChipText, { color: theme.warning }]}>[TEST] Timeout</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.presetChip, styles.testChip]} onPress={onTestRateLimit}>
-              <Text style={styles.presetChipText}>🛑 Test Rate Limit</Text>
+            <TouchableOpacity
+              style={[styles.presetChip, { backgroundColor: theme.warningLight, borderColor: theme.warning }]}
+              onPress={onTestRateLimit}
+            >
+              <Text style={[styles.presetChipText, { color: theme.warning }]}>[TEST] Rate Limit</Text>
             </TouchableOpacity>
           </>
         )}
@@ -141,16 +178,24 @@ export function RoutePointsCard({
 
       {/* Autocomplete Suggestions */}
       {searchResults.length > 0 && (
-        <View style={styles.suggestionsContainer}>
+        <View
+          style={[
+            styles.suggestionsContainer,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           {searchResults.map((item: LocationPoint, idx: number) => (
             <TouchableOpacity
               key={`${item.title}-${idx}`}
-              style={styles.suggestionItem}
+              style={[styles.suggestionItem, { borderBottomColor: theme.borderLight }]}
               onPress={() => onSelectSearchResult(item)}
             >
-              <Text style={styles.suggestionTitle}>{item.title}</Text>
+              <Text style={[styles.suggestionTitle, { color: theme.text }]}>{item.title}</Text>
               {item.subtitle && (
-                <Text style={styles.suggestionSub} numberOfLines={1}>
+                <Text style={[styles.suggestionSub, { color: theme.textMuted }]} numberOfLines={1}>
                   {item.subtitle}
                 </Text>
               )}
@@ -164,110 +209,88 @@ export function RoutePointsCard({
 
 const styles = StyleSheet.create({
   pointsCard: {
-    backgroundColor: '#1E293B',
     padding: 12,
     marginHorizontal: 12,
     marginTop: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   pointRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     borderRadius: 8,
-  },
-  activePointRow: {
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#38BDF8',
+    marginBottom: 4,
   },
   pointDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: 8,
   },
   pointLabel: {
-    color: '#94A3B8',
     fontSize: 13,
     fontWeight: '600',
     width: 44,
   },
   pointValue: {
-    color: '#F1F5F9',
     fontSize: 13,
     flex: 1,
   },
   gpsButton: {
-    backgroundColor: '#334155',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    gap: 4,
   },
   gpsButtonText: {
-    color: '#38BDF8',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   searchRow: {
     marginTop: 6,
   },
   searchInput: {
-    backgroundColor: '#0F172A',
-    color: '#F1F5F9',
     fontSize: 13,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   presetsBar: {
     marginTop: 8,
     flexDirection: 'row',
   },
   presetChip: {
-    backgroundColor: '#0F172A',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 6,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: '#334155',
-  },
-  testChip: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   presetChipText: {
-    color: '#E2E8F0',
     fontSize: 11,
     fontWeight: '600',
   },
   suggestionsContainer: {
-    backgroundColor: '#0F172A',
     borderRadius: 8,
     marginTop: 8,
     maxHeight: 140,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   suggestionItem: {
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
   },
   suggestionTitle: {
-    color: '#F1F5F9',
     fontSize: 13,
     fontWeight: '600',
   },
   suggestionSub: {
-    color: '#64748B',
     fontSize: 11,
   },
 });

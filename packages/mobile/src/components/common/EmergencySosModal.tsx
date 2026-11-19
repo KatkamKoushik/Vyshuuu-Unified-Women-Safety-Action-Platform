@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { useTheme } from '../../theme/ThemeContext';
+import { AppIcon } from './AppIcon';
 import {
   getEmergencyContacts,
   saveEmergencyContact,
@@ -33,6 +35,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
   onOpenDisguise,
   currentGps,
 }) => {
+  const { theme } = useTheme();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
 
@@ -208,23 +211,23 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onDismiss}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Safety Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
           <View style={styles.headerTitleRow}>
-            <Text style={styles.headerIcon}>🚨</Text>
+            <AppIcon name="alert" size={20} color={theme.danger} />
             <View>
-              <Text style={styles.headerTitle}>Emergency SOS Hub</Text>
-              <Text style={styles.headerSubtitle}>Real-time dispatch & statutory helplines</Text>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Emergency SOS Hub</Text>
+              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Real-time dispatch & statutory helplines</Text>
             </View>
           </View>
           <TouchableOpacity
-            style={styles.closeBtn}
+            style={[styles.closeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={onDismiss}
             accessibilityRole="button"
             accessibilityLabel="Close Emergency Hub"
           >
-            <Text style={styles.closeBtnText}>✕ Close</Text>
+            <Text style={[styles.closeBtnText, { color: theme.textSecondary }]}>Close</Text>
           </TouchableOpacity>
         </View>
 
@@ -234,20 +237,20 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           {/* Real-time Panic SOS Card */}
-          <View style={styles.panicCard}>
+          <View style={[styles.panicCard, { backgroundColor: theme.dangerLight, borderColor: theme.danger }]}>
             <View style={styles.panicBadgeRow}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.panicBadgeText}>EMERGENCY SMS COMPOSER</Text>
+              <View style={[styles.pulseDot, { backgroundColor: theme.danger }]} />
+              <Text style={[styles.panicBadgeText, { color: theme.danger }]}>EMERGENCY SMS COMPOSER</Text>
             </View>
 
-            <Text style={styles.panicHeading}>Draft Live GPS SOS to Trusted Contacts</Text>
-            <Text style={styles.panicSubtext}>
+            <Text style={[styles.panicHeading, { color: theme.text }]}>Draft Live GPS SOS to Trusted Contacts</Text>
+            <Text style={[styles.panicSubtext, { color: theme.textSecondary }]}>
               Pre-fills an emergency SMS with your live Google Maps coordinates and GPS accuracy radius for all trusted contacts.
               Android and iOS security sandboxes require you to tap 'Send' in your Messages app.
             </Text>
 
             <TouchableOpacity
-              style={styles.panicButton}
+              style={[styles.panicButton, { backgroundColor: theme.danger }]}
               onPress={handleBroadcastSos}
               disabled={isSendingSos}
               activeOpacity={0.8}
@@ -258,7 +261,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <View style={styles.panicBtnInner}>
-                  <Text style={styles.panicBtnIcon}>💬</Text>
+                  <AppIcon name="email" size={16} color="#FFFFFF" />
                   <Text style={styles.panicBtnText}>OPEN SOS IN MESSAGES APP</Text>
                 </View>
               )}
@@ -266,8 +269,8 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 
             {currentGps && (
               <View style={styles.gpsIndicatorRow}>
-                <Text style={styles.gpsIndicatorText}>
-                  📍 GPS Fix Active: {currentGps.latitude.toFixed(5)}, {currentGps.longitude.toFixed(5)}
+                <Text style={[styles.gpsIndicatorText, { color: theme.textMuted }]}>
+                  GPS Fix Active: {currentGps.latitude.toFixed(5)}, {currentGps.longitude.toFixed(5)}
                 </Text>
               </View>
             )}
@@ -276,7 +279,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
           {/* Quick Disguise Button */}
           {onOpenDisguise && (
             <TouchableOpacity
-              style={styles.disguiseQuickBtn}
+              style={[styles.disguiseQuickBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => {
                 onDismiss();
                 onOpenDisguise();
@@ -285,21 +288,21 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Immediately hide app with calculator disguise"
             >
-              <Text style={styles.disguiseQuickIcon}>🧮</Text>
+              <AppIcon name="lock" size={18} color={theme.text} />
               <View style={styles.disguiseQuickTextWrap}>
-                <Text style={styles.disguiseQuickTitle}>Disguise as Calculator</Text>
-                <Text style={styles.disguiseQuickSubtitle}>
+                <Text style={[styles.disguiseQuickTitle, { color: theme.text }]}>Disguise as Calculator</Text>
+                <Text style={[styles.disguiseQuickSubtitle, { color: theme.textSecondary }]}>
                   Instant stealth screen disguise if you feel watched
                 </Text>
               </View>
-              <Text style={styles.disguiseQuickArrow}>→</Text>
+              <Text style={[styles.disguiseQuickArrow, { color: theme.textMuted }]}>→</Text>
             </TouchableOpacity>
           )}
 
           {/* Speed Dial Helplines */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>India Statutory Helplines (Direct Speed Dial)</Text>
-            <Text style={styles.sectionSubtitle}>
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>India Statutory Helplines (Direct Speed Dial)</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
               Official government 24x7 emergency response services
             </Text>
 
@@ -355,20 +358,20 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
           </View>
 
           {/* Trusted Contacts Section */}
-          <View style={styles.sectionCard}>
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.contactsHeaderRow}>
               <View>
-                <Text style={styles.sectionTitle}>Trusted Emergency Contacts</Text>
-                <Text style={styles.sectionSubtitle}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Trusted Emergency Contacts</Text>
+                <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
                   {contacts.length} contact{contacts.length === 1 ? '' : 's'} saved on-device
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.addContactBtn}
+                style={[styles.addContactBtn, { backgroundColor: theme.primaryLight, borderColor: theme.primary }]}
                 onPress={() => setIsAddingContact(!isAddingContact)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.addContactBtnText}>
+                <Text style={[styles.addContactBtnText, { color: theme.primary }]}>
                   {isAddingContact ? 'Cancel' : '+ Add Contact'}
                 </Text>
               </TouchableOpacity>
@@ -376,77 +379,77 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 
             {/* Add Contact Form */}
             {isAddingContact && (
-              <View style={styles.addForm}>
-                <Text style={styles.formHeading}>Add New Trusted Contact</Text>
+              <View style={[styles.addForm, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.formHeading, { color: theme.text }]}>Add New Trusted Contact</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
                   placeholder="Full Name (e.g. Amma, Sister, Roommate)"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={theme.textMuted}
                   value={newName}
                   onChangeText={setNewName}
                 />
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
                   placeholder="Phone Number (e.g. +91 98765 43210)"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={theme.textMuted}
                   keyboardType="phone-pad"
                   value={newPhone}
                   onChangeText={setNewPhone}
                 />
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
                   placeholder="Relationship (e.g. Mother, Sister, Friend, Security)"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={theme.textMuted}
                   value={newRelationship}
                   onChangeText={setNewRelationship}
                 />
                 <TouchableOpacity
-                  style={styles.saveContactBtn}
+                  style={[styles.saveContactBtn, { backgroundColor: theme.primary }]}
                   onPress={handleSaveContact}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.saveContactBtnText}>Save to Device Vault</Text>
+                  <Text style={[styles.saveContactBtnText, { color: '#FFFFFF' }]}>Save to Device Vault</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {/* Contacts List */}
             {isLoadingContacts ? (
-              <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 16 }} />
+              <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 16 }} />
             ) : contacts.length === 0 ? (
               <View style={styles.emptyContacts}>
-                <Text style={styles.emptyContactsIcon}>👥</Text>
-                <Text style={styles.emptyContactsText}>No Emergency Contacts Added</Text>
-                <Text style={styles.emptyContactsSubtext}>
+                <AppIcon name="shield" size={24} color={theme.textMuted} />
+                <Text style={[styles.emptyContactsText, { color: theme.text }]}>No Emergency Contacts Added</Text>
+                <Text style={[styles.emptyContactsSubtext, { color: theme.textSecondary }]}>
                   Add family members, roommates, or trusted friends so you can broadcast your live GPS in 1 tap during emergencies.
                 </Text>
               </View>
             ) : (
               <View style={styles.contactsList}>
                 {contacts.map((c) => (
-                  <View key={c.id} style={styles.contactItem}>
+                  <View key={c.id} style={[styles.contactItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <View style={styles.contactInfo}>
-                      <Text style={styles.contactName}>{c.name}</Text>
-                      <Text style={styles.contactPhone}>{c.phone_number}</Text>
-                      <View style={styles.contactRelBadge}>
-                        <Text style={styles.contactRelText}>{c.relationship}</Text>
+                      <Text style={[styles.contactName, { color: theme.text }]}>{c.name}</Text>
+                      <Text style={[styles.contactPhone, { color: theme.textSecondary }]}>{c.phone_number}</Text>
+                      <View style={[styles.contactRelBadge, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                        <Text style={[styles.contactRelText, { color: theme.primary }]}>{c.relationship}</Text>
                       </View>
                     </View>
 
                     <View style={styles.contactActions}>
                       <TouchableOpacity
-                        style={styles.contactCallBtn}
+                        style={[styles.contactCallBtn, { backgroundColor: theme.primary }]}
                         onPress={() => Linking.openURL(`tel:${c.phone_number}`)}
                         accessibilityLabel={`Call ${c.name}`}
                       >
-                        <Text style={styles.contactCallIcon}>📞</Text>
+                        <AppIcon name="phone" size={14} color="#FFFFFF" />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.contactDeleteBtn}
+                        style={[styles.contactDeleteBtn, { backgroundColor: theme.dangerLight }]}
                         onPress={() => handleDeleteContact(c)}
                         accessibilityLabel={`Delete ${c.name}`}
                       >
-                        <Text style={styles.contactDeleteIcon}>🗑️</Text>
+                        <AppIcon name="trash" size={14} color={theme.danger} />
                       </TouchableOpacity>
                     </View>
                   </View>

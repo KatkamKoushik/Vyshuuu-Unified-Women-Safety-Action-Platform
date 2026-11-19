@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from './common/AppIcon';
 
 interface RouteActionsBarProps {
   onStartWalking: () => void;
@@ -18,6 +20,8 @@ export function RouteActionsBar({
   showManeuvers,
   onToggleManeuvers,
 }: RouteActionsBarProps) {
+  const { theme } = useTheme();
+
   return (
     <ScrollView
       horizontal
@@ -25,58 +29,91 @@ export function RouteActionsBar({
       contentContainerStyle={styles.actionButtonsRow}
     >
       <TouchableOpacity
-        style={[styles.actionBtn, styles.walkModeBtn]}
+        style={[styles.actionBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]}
         onPress={onStartWalking}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Start Walking Mode"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.walkModeBtnText}>🚶 Walk</Text>
+        <AppIcon name="walk" size={16} color="#FFFFFF" />
+        <Text style={[styles.actionBtnText, { color: '#FFFFFF', fontWeight: '800' }]}>
+          Walk
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.actionBtn}
+        style={[
+          styles.actionBtn,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
         onPress={onSaveRoute}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Save Route to Local SQLite"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.actionBtnText}>⭐ Save</Text>
+        <AppIcon name="star" size={16} color={theme.warning} />
+        <Text style={[styles.actionBtnText, { color: theme.text }]}>Save</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.actionBtn}
+        style={[
+          styles.actionBtn,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
         onPress={onTogglePhotos}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Check Panoramax Street Photos"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.actionBtnText}>📷 Photos</Text>
+        <AppIcon name="camera" size={16} color={theme.textSecondary} />
+        <Text style={[styles.actionBtnText, { color: theme.text }]}>Photos</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.actionBtn}
+        style={[
+          styles.actionBtn,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
         onPress={onOpenPrivacy}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Open Privacy and Data Flow Settings"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.actionBtnText}>⚙️ Privacy</Text>
+        <AppIcon name="settings" size={16} color={theme.textSecondary} />
+        <Text style={[styles.actionBtnText, { color: theme.text }]}>Privacy</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.actionBtn, styles.stepsBtn]}
+        style={[
+          styles.actionBtn,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
         onPress={onToggleManeuvers}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Toggle Turn by Turn Steps"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.actionBtnText}>{showManeuvers ? 'Hide' : 'Steps'}</Text>
+        <AppIcon name="nav" size={14} color={theme.primary} />
+        <Text style={[styles.actionBtnText, { color: theme.primary, fontWeight: '700' }]}>
+          {showManeuvers ? 'Hide Steps' : 'Steps'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -90,32 +127,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionBtn: {
-    backgroundColor: '#1E293B',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    minHeight: 48,
+    minHeight: 46,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  walkModeBtn: {
-    backgroundColor: '#0284C7',
-    borderColor: '#38BDF8',
-  },
-  walkModeBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  stepsBtn: {
-    borderColor: '#38BDF8',
+    gap: 6,
   },
   actionBtnText: {
-    color: '#38BDF8',
     fontSize: 13,
     fontWeight: '600',
   },
 });
-

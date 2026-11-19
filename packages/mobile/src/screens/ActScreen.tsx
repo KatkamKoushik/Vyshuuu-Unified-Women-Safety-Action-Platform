@@ -29,6 +29,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { VaultSecurityModal } from '../components/common/VaultSecurityModal';
 import { readAndHashFile } from '../services/evidenceHasher';
+import { useTheme } from '../theme/ThemeContext';
+import { AppIcon } from '../components/common/AppIcon';
 
 interface ActScreenProps {
   initialStatement?: string;
@@ -36,6 +38,7 @@ interface ActScreenProps {
 }
 
 export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
+  const { theme } = useTheme();
   const [actSubTab, setActSubTab] = useState<'composer' | 'vault' | 'directory'>('composer');
   const [savedGrievancesList, setSavedGrievancesList] = useState<SavedGrievance[]>([]);
   const [isLoadingVault, setIsLoadingVault] = useState(false);
@@ -425,46 +428,64 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]} contentContainerStyle={styles.contentContainer}>
       {/* Top Header */}
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.screenTitle}>Act Navigator</Text>
-          <Text style={styles.screenSubtitle}>Statutory grievance navigator & evidence assistant</Text>
+          <Text style={[styles.screenTitle, { color: theme.text }]}>Act Navigator</Text>
+          <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>Statutory grievance navigator & evidence assistant</Text>
         </View>
         {actSubTab === 'composer' && (
-          <TouchableOpacity style={styles.demoBtn} onPress={handleClearForm}>
-            <Text style={styles.demoBtnText}>Clear Form</Text>
+          <TouchableOpacity style={[styles.demoBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleClearForm}>
+            <Text style={[styles.demoBtnText, { color: theme.textSecondary }]}>Clear Form</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Sub Tab Switcher: Composer | Petitions Vault | Directory */}
-      <View style={styles.subTabRow}>
+      <View style={[styles.subTabRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <TouchableOpacity
-          style={[styles.subTabBtn, actSubTab === 'composer' && styles.subTabBtnActive]}
+          style={[styles.subTabBtn, actSubTab === 'composer' && { backgroundColor: theme.card }]}
           onPress={() => setActSubTab('composer')}
         >
-          <Text style={[styles.subTabBtnText, actSubTab === 'composer' && styles.subTabBtnTextActive]}>
+          <Text
+            style={[
+              styles.subTabBtnText,
+              { color: theme.textMuted },
+              actSubTab === 'composer' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             Draft Petition
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.subTabBtn, actSubTab === 'vault' && styles.subTabBtnActive]}
+          style={[styles.subTabBtn, actSubTab === 'vault' && { backgroundColor: theme.card }]}
           onPress={() => setActSubTab('vault')}
         >
-          <Text style={[styles.subTabBtnText, actSubTab === 'vault' && styles.subTabBtnTextActive]}>
+          <Text
+            style={[
+              styles.subTabBtnText,
+              { color: theme.textMuted },
+              actSubTab === 'vault' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
             Vault ({savedGrievancesList.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.subTabBtn, actSubTab === 'directory' && styles.subTabBtnActive]}
+          style={[styles.subTabBtn, actSubTab === 'directory' && { backgroundColor: theme.card }]}
           onPress={() => setActSubTab('directory')}
         >
-          <Text style={[styles.subTabBtnText, actSubTab === 'directory' && styles.subTabBtnTextActive]}>
-            Directory 🏛️
+          <Text
+            style={[
+              styles.subTabBtnText,
+              { color: theme.textMuted },
+              actSubTab === 'directory' && { color: theme.primary, fontWeight: '700' },
+            ]}
+          >
+            Directory
           </Text>
         </TouchableOpacity>
       </View>
@@ -583,22 +604,32 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
           />
 
           <Text style={styles.label}>Contemporaneous Evidence / Photos (Optional)</Text>
-          <TouchableOpacity style={styles.attachBtn} onPress={handlePickEvidenceFile} activeOpacity={0.7}>
-            <Text style={styles.attachBtnText}>📎 Attach Document or Photograph</Text>
+          <TouchableOpacity
+            style={[styles.attachBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={handlePickEvidenceFile}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <AppIcon name="attach" size={14} color={theme.primary} />
+              <Text style={[styles.attachBtnText, { color: theme.primary }]}>Attach Document or Photograph</Text>
+            </View>
           </TouchableOpacity>
 
           {attachedFiles.length > 0 && (
             <View style={styles.attachedFilesList}>
               {attachedFiles.map((file, idx) => (
-                <View key={idx} style={styles.attachedFileBadge}>
+                <View key={idx} style={[styles.attachedFileBadge, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.attachedFileName} numberOfLines={1}>{file.name}</Text>
-                    <Text style={styles.attachedFileMeta}>
+                    <Text style={[styles.attachedFileName, { color: theme.text }]} numberOfLines={1}>{file.name}</Text>
+                    <Text style={[styles.attachedFileMeta, { color: theme.textSecondary }]}>
                       {Math.round(file.sizeBytes / 1024)} KB • SHA-256: {file.digestHex.slice(0, 16)}...
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => handleRemoveAttachedFile(idx)} style={styles.removeFileBtn}>
-                    <Text style={styles.removeFileText}>✕</Text>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveAttachedFile(idx)}
+                    style={[styles.removeFileBtn, { backgroundColor: theme.surface }]}
+                  >
+                    <AppIcon name="close" size={12} color={theme.danger} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -717,44 +748,50 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
 
             <View style={styles.handoffActionsRow}>
               <TouchableOpacity
-                style={styles.shareDocBtn}
+                style={[styles.shareDocBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                 onPress={() => handleShareFormalDoc()}
               >
-                <Text style={styles.shareDocBtnText}>📤 Share Petition</Text>
+                <AppIcon name="share" size={14} color={theme.text} />
+                <Text style={[styles.shareDocBtnText, { color: theme.text }]}>Share Petition</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.emailDocBtn}
+                style={[styles.emailDocBtn, { backgroundColor: theme.primary }]}
                 onPress={() => handleEmailPetition()}
               >
-                <Text style={styles.emailDocBtnText}>✉️ Send by Email</Text>
+                <AppIcon name="email" size={14} color="#FFFFFF" />
+                <Text style={styles.emailDocBtnText}>Send by Email</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.pillSectionHeader}>1-TAP CLIPBOARD PILLS:</Text>
+            <Text style={[styles.pillSectionHeader, { color: theme.textMuted }]}>1-TAP CLIPBOARD PILLS:</Text>
             {composedCase.portalHandoff.clipboardPills?.map((pill: any) => (
               <TouchableOpacity
                 key={pill.key}
-                style={[styles.pillCard, copiedKey === pill.key && styles.pillCardCopied]}
+                style={[
+                  styles.pillCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  copiedKey === pill.key && { borderColor: theme.success, backgroundColor: theme.successLight },
+                ]}
                 onPress={() => handleCopyPill(pill.key, pill.value)}
               >
                 <View style={styles.pillTop}>
-                  <Text style={styles.pillLabel}>{pill.label}</Text>
-                  <Text style={styles.pillCopyIndicator}>
-                    {copiedKey === pill.key ? '✓ COPIED' : 'TAP TO COPY'}
+                  <Text style={[styles.pillLabel, { color: theme.primary }]}>{pill.label}</Text>
+                  <Text style={[styles.pillCopyIndicator, { color: copiedKey === pill.key ? theme.success : theme.textMuted }]}>
+                    {copiedKey === pill.key ? 'COPIED' : 'TAP TO COPY'}
                   </Text>
                 </View>
-                <Text style={styles.pillPreview} numberOfLines={2}>
+                <Text style={[styles.pillPreview, { color: theme.text }]} numberOfLines={2}>
                   {pill.value}
                 </Text>
               </TouchableOpacity>
             ))}
 
             <TouchableOpacity
-              style={styles.resetBtn}
+              style={[styles.resetBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => setStep('intake')}
             >
-              <Text style={styles.resetBtnText}>← Start New Grievance</Text>
+              <Text style={[styles.resetBtnText, { color: theme.textSecondary }]}>← Start New Grievance</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -766,45 +803,47 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       {actSubTab === 'vault' && (
         <View style={styles.vaultContainer}>
           {!isVaultUnlocked ? (
-            <View style={styles.lockedVaultCard}>
-              <Text style={styles.lockedVaultIcon}>🔒</Text>
-              <Text style={styles.lockedVaultTitle}>Vault Authentication Required</Text>
-              <Text style={styles.lockedVaultDesc}>
+            <View style={[styles.lockedVaultCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={{ marginBottom: 12, alignItems: 'center' }}>
+                <AppIcon name="lock" size={32} color={theme.primary} />
+              </View>
+              <Text style={[styles.lockedVaultTitle, { color: theme.text }]}>Vault Authentication Required</Text>
+              <Text style={[styles.lockedVaultDesc, { color: theme.textSecondary }]}>
                 Statutory representations contain sensitive student and grievance information.
                 Enter your 4-digit security PIN to unlock and view saved records.
               </Text>
               <TouchableOpacity
-                style={styles.unlockVaultBtn}
+                style={[styles.unlockVaultBtn, { backgroundColor: theme.primary }]}
                 onPress={() => setIsVaultModalVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.unlockVaultBtnText}>Unlock Protected Vault 🔓</Text>
+                <Text style={styles.unlockVaultBtnText}>Unlock Protected Vault</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={styles.vaultHeaderRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.vaultTitle}>Saved Statutory Petitions</Text>
-                  <Text style={styles.vaultSubtitle}>
+                  <Text style={[styles.vaultTitle, { color: theme.text }]}>Saved Statutory Petitions</Text>
+                  <Text style={[styles.vaultSubtitle, { color: theme.textSecondary }]}>
                     Locally protected records persisted in on-device SQLite
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.lockVaultBtn}
+                  style={[styles.lockVaultBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                   onPress={() => setIsVaultUnlocked(false)}
                 >
-                  <Text style={styles.lockVaultBtnText}>Lock 🔒</Text>
+                  <Text style={[styles.lockVaultBtnText, { color: theme.textSecondary }]}>Lock Vault</Text>
                 </TouchableOpacity>
               </View>
 
               {isLoadingVault ? (
-                <ActivityIndicator size="small" color="#38BDF8" style={{ marginVertical: 24 }} />
+                <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 24 }} />
               ) : savedGrievancesList.length === 0 ? (
-            <View style={styles.emptyVaultCard}>
-              <Text style={styles.emptyVaultIcon}>🏛️</Text>
-              <Text style={styles.emptyVaultTitle}>No Grievance Petitions Saved</Text>
-              <Text style={styles.emptyVaultDesc}>
+            <View style={[styles.emptyVaultCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <AppIcon name="legal" size={36} color={theme.textMuted} />
+              <Text style={[styles.emptyVaultTitle, { color: theme.text }]}>No Grievance Petitions Saved</Text>
+              <Text style={[styles.emptyVaultDesc, { color: theme.textSecondary }]}>
                 Petitions generated in the Draft Petition tab will be stored here on your device for fast review, emailing, and statutory filing.
               </Text>
             </View>
@@ -813,62 +852,62 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
               {savedGrievancesList.map((item) => {
                 const isSelected = selectedVaultDoc?.id === item.id;
                 return (
-                  <View key={item.id} style={styles.vaultCard}>
+                  <View key={item.id} style={[styles.vaultCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <View style={styles.vaultTopRow}>
-                      <View style={styles.vaultCatBadge}>
-                        <Text style={styles.vaultCatText}>{item.category.replace(/_/g, ' ')}</Text>
+                      <View style={[styles.vaultCatBadge, { backgroundColor: theme.primaryLight }]}>
+                        <Text style={[styles.vaultCatText, { color: theme.primary }]}>{item.category.replace(/_/g, ' ')}</Text>
                       </View>
-                      <Text style={styles.vaultDate}>
+                      <Text style={[styles.vaultDate, { color: theme.textMuted }]}>
                         {new Date(item.created_at).toLocaleDateString()}
                       </Text>
                     </View>
 
-                    <Text style={styles.vaultCardTitle}>{item.title}</Text>
-                    <Text style={styles.vaultInstitution}>
+                    <Text style={[styles.vaultCardTitle, { color: theme.text }]}>{item.title}</Text>
+                    <Text style={[styles.vaultInstitution, { color: theme.textSecondary }]}>
                       Institution: {item.institution_name} {item.hostel_location ? `(${item.hostel_location})` : ''}
                     </Text>
-                    <Text style={styles.vaultAuthority}>
-                      Authority: <Text style={{ color: '#38BDF8', fontWeight: '700' }}>{item.authority_code}</Text>
+                    <Text style={[styles.vaultAuthority, { color: theme.textMuted }]}>
+                      Authority: <Text style={{ color: theme.primary, fontWeight: '700' }}>{item.authority_code}</Text>
                     </Text>
 
                     {isSelected && (
-                      <View style={styles.vaultDocExpanded}>
-                        <Text style={styles.vaultDocExpandedHeading}>Formal Document Content:</Text>
-                        <ScrollView style={styles.vaultDocBox} nestedScrollEnabled>
-                          <Text style={styles.vaultDocText}>{item.formal_document}</Text>
+                      <View style={[styles.vaultDocExpanded, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={[styles.vaultDocExpandedHeading, { color: theme.text }]}>Formal Document Content:</Text>
+                        <ScrollView style={[styles.vaultDocBox, { backgroundColor: theme.card }]} nestedScrollEnabled>
+                          <Text style={[styles.vaultDocText, { color: theme.text }]}>{item.formal_document}</Text>
                         </ScrollView>
                       </View>
                     )}
 
                     <View style={styles.vaultBtnRow}>
                       <TouchableOpacity
-                        style={styles.vaultActionBtn}
+                        style={[styles.vaultActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                         onPress={() => setSelectedVaultDoc(isSelected ? null : item)}
                       >
-                        <Text style={styles.vaultActionBtnText}>
-                          {isSelected ? 'Hide Doc ▲' : 'View Doc 📄'}
+                        <Text style={[styles.vaultActionBtnText, { color: theme.text }]}>
+                          {isSelected ? 'Hide Doc' : 'View Doc'}
                         </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.vaultActionBtn}
+                        style={[styles.vaultActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                         onPress={() => handleShareFormalDoc(item.formal_document, item.title)}
                       >
-                        <Text style={styles.vaultActionBtnText}>Share 📤</Text>
+                        <Text style={[styles.vaultActionBtnText, { color: theme.text }]}>Share</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.vaultActionBtn}
+                        style={[styles.vaultActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                         onPress={() => handleEmailPetition(item.authority_code, item.formal_document, item.title)}
                       >
-                        <Text style={styles.vaultActionBtnText}>Email ✉️</Text>
+                        <Text style={[styles.vaultActionBtnText, { color: theme.text }]}>Email</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.vaultActionBtn, styles.vaultDeleteBtn]}
+                        style={[styles.vaultActionBtn, styles.vaultDeleteBtn, { backgroundColor: theme.dangerLight }]}
                         onPress={() => handleDeleteGrievanceRecord(item.id, item.title)}
                       >
-                        <Text style={styles.vaultDeleteBtnText}>✕</Text>
+                        <AppIcon name="trash" size={14} color={theme.danger} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -885,31 +924,31 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
       {actSubTab === 'directory' && (
         <View style={styles.dirContainer}>
           <View style={styles.dirHeaderRow}>
-            <Text style={styles.dirTitle}>Verified Statutory Authorities</Text>
-            <Text style={styles.dirSubtitle}>
+            <Text style={[styles.dirTitle, { color: theme.text }]}>Verified Statutory Authorities</Text>
+            <Text style={[styles.dirSubtitle, { color: theme.textSecondary }]}>
               Government statutory portals with established resolution mandates
             </Text>
           </View>
 
           <View style={styles.dirList}>
             {Object.values(VERIFIED_AUTHORITIES).map((auth) => (
-              <View key={auth.code} style={styles.dirCard}>
+              <View key={auth.code} style={[styles.dirCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <View style={styles.dirCardTop}>
-                  <Text style={styles.dirCode}>{auth.code.replace(/_/g, ' ')}</Text>
+                  <Text style={[styles.dirCode, { color: theme.primary }]}>{auth.code.replace(/_/g, ' ')}</Text>
                   {auth.resolutionWindowDays && (
-                    <View style={styles.dirWindowBadge}>
-                      <Text style={styles.dirWindowText}>⏱️ {auth.resolutionWindowDays}-Day Window</Text>
+                    <View style={[styles.dirWindowBadge, { backgroundColor: theme.primaryLight }]}>
+                      <Text style={[styles.dirWindowText, { color: theme.primary }]}>{auth.resolutionWindowDays}-Day Window</Text>
                     </View>
                   )}
                 </View>
 
-                <Text style={styles.dirName}>{auth.name}</Text>
-                <Text style={styles.dirJurisdiction}>{auth.jurisdiction}</Text>
+                <Text style={[styles.dirName, { color: theme.text }]}>{auth.name}</Text>
+                <Text style={[styles.dirJurisdiction, { color: theme.textSecondary }]}>{auth.jurisdiction}</Text>
 
                 <View style={styles.dirActionsRow}>
                   {auth.portalUrl && (
                     <TouchableOpacity
-                      style={styles.dirPortalBtn}
+                      style={[styles.dirPortalBtn, { backgroundColor: theme.primary }]}
                       onPress={() => Linking.openURL(auth.portalUrl)}
                     >
                       <Text style={styles.dirPortalBtnText}>Official Portal ↗</Text>
@@ -918,10 +957,11 @@ export const ActScreen: React.FC<ActScreenProps> = ({ initialStatement }) => {
 
                   {auth.emergencyHelpline && (
                     <TouchableOpacity
-                      style={styles.dirCallBtn}
+                      style={[styles.dirCallBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                       onPress={() => Linking.openURL(`tel:${auth.emergencyHelpline}`)}
                     >
-                      <Text style={styles.dirCallBtnText}>📞 {auth.emergencyHelpline}</Text>
+                      <AppIcon name="phone" size={12} color={theme.text} />
+                      <Text style={[styles.dirCallBtnText, { color: theme.text }]}>Call {auth.emergencyHelpline}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

@@ -14,6 +14,7 @@ import {
   CameraRef,
 } from '@maplibre/maplibre-react-native';
 import { RoutingCoord } from '../services/routingAdapter';
+import { AppIcon } from './common/AppIcon';
 
 // High-resolution OpenStreetMap standard raster tiles (keyless, official OpenStreetMap)
 export const DEFAULT_MAP_STYLE = JSON.stringify({
@@ -226,7 +227,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             lngLat={[photo.longitude, photo.latitude]}
           >
             <View style={styles.photoMarker}>
-              <Text style={styles.photoIcon}>📷</Text>
+              <AppIcon name="camera" size={12} color="#FFFFFF" />
             </View>
           </Marker>
         ))}
@@ -248,7 +249,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Recenter map on current location"
         >
-          <Text style={styles.recenterIcon}>🎯</Text>
+          <AppIcon name="target" size={18} color="#0284C7" />
         </TouchableOpacity>
       )}
     </View>

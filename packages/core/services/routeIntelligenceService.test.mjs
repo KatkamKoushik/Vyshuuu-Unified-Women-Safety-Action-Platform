@@ -142,7 +142,7 @@ test('routeIntelligenceService - verified support points evaluation', async (t) 
         verificationSource: 'Location Field Audit Report #2026-A12',
         evidenceUrl: 'https://example.gov/audits/2026-A12',
         verifiedAt: '2026-10-15T00:00:00Z',
-        expiresAt: '2026-11-15T00:00:00Z',
+        expiresAt: '2027-11-15T00:00:00Z',
       },
       {
         id: 'unconfirmed_kiosk',
@@ -154,7 +154,7 @@ test('routeIntelligenceService - verified support points evaluation', async (t) 
         verificationSource: '',
         evidenceUrl: '',
         verifiedAt: '2026-10-15T00:00:00Z',
-        expiresAt: '2026-11-15T00:00:00Z',
+        expiresAt: '2027-11-15T00:00:00Z',
       },
     ];
 

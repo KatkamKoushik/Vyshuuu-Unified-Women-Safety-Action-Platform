@@ -146,7 +146,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
       let accuracy: number | null = null;
 
       // If no GPS supplied, attempt high-accuracy GPS fix on demand
-      if (!lat || !lon) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
@@ -164,7 +164,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 
       const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       let locationText = '';
-      if (lat && lon) {
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
         const accText = accuracy ? ` (±${Math.round(accuracy)}m)` : '';
         locationText = `My current live location: https://maps.google.com/?q=${lat},${lon}${accText}`;
       } else {
@@ -196,14 +196,19 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
       const supported = await Linking.canOpenURL(smsUrl).catch(() => false);
       if (supported) {
         await Linking.openURL(smsUrl);
+        Alert.alert(
+          'SMS Composer Opened',
+          'Please review and tap Send in your messaging app. Note: ResQ cannot confirm carrier delivery. For immediate emergency response, call 112 directly.',
+          [{ text: 'Understood' }]
+        );
       } else {
         // Fallback: try opening plain sms:
         await Linking.openURL(`sms:${phoneNumbers}`).catch(() => {
-          Alert.alert('SMS Dispatch Error', 'Could not open device SMS app.');
+          Alert.alert('SMS Dispatch Error', 'Could not open device SMS app. Please call 112 directly.');
         });
       }
     } catch {
-      Alert.alert('SOS Error', 'An error occurred while preparing emergency dispatch.');
+      Alert.alert('SOS Error', 'An error occurred while preparing emergency SMS.');
     } finally {
       setIsSendingSos(false);
     }
@@ -218,7 +223,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
             <AppIcon name="alert" size={20} color={theme.danger} />
             <View>
               <Text style={[styles.headerTitle, { color: theme.text }]}>Emergency SOS Hub</Text>
-              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Real-time dispatch & statutory helplines</Text>
+              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Emergency SMS composer & statutory helplines</Text>
             </View>
           </View>
           <TouchableOpacity

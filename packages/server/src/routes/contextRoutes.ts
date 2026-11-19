@@ -39,7 +39,8 @@ export async function registerContextRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Validate coordinate points
+      // Validate coordinate points and standard WGS-84 geographic bounds
+      let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
       for (const pt of coordinates) {
         if (!Array.isArray(pt) || pt.length < 2 || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) {
           return reply.status(400).send({
@@ -47,6 +48,25 @@ export async function registerContextRoutes(fastify: FastifyInstance) {
             error: 'All coordinates must be finite numeric [longitude, latitude] pairs',
           });
         }
+        const [lon, lat] = pt;
+        if (lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+          return reply.status(400).send({
+            ok: false,
+            error: 'Coordinate values out of standard WGS-84 geographic bounds (lon [-180, 180], lat [-90, 90])',
+          });
+        }
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+
+      // Safeguard against oversized bounding box (> 0.5 degrees span) to prevent Overpass exhaustion
+      if (maxLon - minLon > 0.5 || maxLat - minLat > 0.5) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'Corridor coordinate bounding box exceeds maximum permissible span of 0.5 degrees',
+        });
       }
 
       const safeMaxCorridorDistance = Math.min(500, Math.max(10, Number(maxCorridorDistanceMeters) || 120));

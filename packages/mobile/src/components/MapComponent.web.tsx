@@ -55,10 +55,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       ? [destination.latitude, destination.longitude]
       : [17.3616, 78.4747]; // Hyderabad Hub (Charminar, India)
 
-    const originJson = origin ? JSON.stringify(origin) : 'null';
-    const destinationJson = destination ? JSON.stringify(destination) : 'null';
-    const routesJson = JSON.stringify(routes || []);
-    const amenitiesJson = JSON.stringify(amenities || []);
+    const originJson = origin ? JSON.stringify(origin).replace(/</g, '\\u003c') : 'null';
+    const destinationJson = destination ? JSON.stringify(destination).replace(/</g, '\\u003c') : 'null';
+    const routesJson = JSON.stringify(routes || []).replace(/</g, '\\u003c');
+    const amenitiesJson = JSON.stringify(amenities || []).replace(/</g, '\\u003c');
 
     return `<!DOCTYPE html>
 <html>
@@ -79,9 +79,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${defaultCenter[0]}, ${defaultCenter[1]}], 14);
+    var map = L.map('map', { zoomControl: false, attributionControl: true }).setView([${defaultCenter[0]}, ${defaultCenter[1]}], 14);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     var origin = ${originJson};
@@ -148,6 +149,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     <View style={styles.container}>
       {React.createElement('iframe', {
         srcDoc: mapHtml,
+        sandbox: 'allow-scripts',
         style: styles.webIframe,
         title: 'ResQ Map Viewport',
       })}

@@ -138,6 +138,32 @@ export async function registerNavigatorRoutes(fastify: FastifyInstance) {
         });
       }
 
+      if (msgs.length > 20) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'messages array exceeds maximum allowed limit of 20 messages',
+          code: 'PAYLOAD_TOO_LARGE',
+        });
+      }
+
+      const validRoles = ['user', 'assistant', 'system'];
+      for (const m of msgs) {
+        if (!m || !validRoles.includes(m.role) || typeof m.content !== 'string') {
+          return reply.status(400).send({
+            ok: false,
+            error: 'Each message must have a valid role (user, assistant, system) and string content',
+            code: 'INVALID_INPUT',
+          });
+        }
+        if (m.content.length > 1000) {
+          return reply.status(400).send({
+            ok: false,
+            error: 'Each individual message must not exceed 1000 characters',
+            code: 'PAYLOAD_TOO_LARGE',
+          });
+        }
+      }
+
       const { dynamicChatAssistant } = await import('../services/geminiClient.js');
       const startTime = Date.now();
       const result = await dynamicChatAssistant(msgs);

@@ -1375,25 +1375,46 @@ export function getDashboardHtml(): string {
 
         if (res.ok) {
           const data = await res.json();
-          renderRouteData(data, preset);
-          showToast('Safe pedestrian route calculated successfully.', 'success');
+          const route = data.recommendedRoute || data.routes?.[0];
+          if (route) {
+            renderRouteData(data, preset);
+            showToast('Pedestrian route calculated with mapped features (real-world conditions may vary).', 'success');
+          } else {
+            clearRouteDisplay();
+            showToast('No pedestrian route found between selected points.', 'error');
+          }
         } else {
-          simulateRoute(preset);
-          showToast('Corridor calculated with standard pedestrian baseline.', 'info');
+          clearRouteDisplay();
+          showToast('Routing service unavailable. Real pedestrian route could not be calculated.', 'error');
         }
       } catch {
-        simulateRoute(preset);
-        showToast('Offline fallback: safe corridor rendered.', 'info');
+        clearRouteDisplay();
+        showToast('Routing service offline. Real pedestrian route could not be calculated.', 'error');
       } finally {
         if (btn) btn.disabled = false;
         if (btnText) btnText.innerText = 'Compute Safe Walking Route';
       }
     }
 
+    function clearRouteDisplay() {
+      document.getElementById('routeMetrics').style.display = 'grid';
+      document.getElementById('metricDistance').innerText = 'Unavailable';
+      document.getElementById('metricDuration').innerText = 'Unavailable';
+      document.getElementById('metricLighting').innerText = 'Unsurveyed';
+      document.getElementById('metricSidewalk').innerText = 'Unsurveyed';
+
+      if (primaryPolyline) {
+        map.removeLayer(primaryPolyline);
+        primaryPolyline = null;
+      }
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+    }
+
     async function renderRouteData(data, preset) {
       const route = data.recommendedRoute || data.routes?.[0];
       if (!route) {
-        simulateRoute(preset);
+        clearRouteDisplay();
         return;
       }
 
@@ -1442,29 +1463,6 @@ export function getDashboardHtml(): string {
       }
     }
 
-    function simulateRoute(preset) {
-      document.getElementById('routeMetrics').style.display = 'grid';
-      document.getElementById('metricDistance').innerText = '0.85 km';
-      document.getElementById('metricDuration').innerText = '11 min';
-      document.getElementById('metricLighting').innerText = 'Awaiting Survey';
-      document.getElementById('metricSidewalk').innerText = 'Pedestrian Track';
-
-      if (primaryPolyline) map.removeLayer(primaryPolyline);
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-
-      const start = [preset.origin.lat, preset.origin.lon];
-      const end = [preset.dest.lat, preset.dest.lon];
-      const mid = [(start[0] + end[0]) / 2 + 0.001, (start[1] + end[1]) / 2 - 0.001];
-
-      primaryPolyline = L.polyline([start, mid, end], { color: '#0284C7', weight: 6, opacity: 0.85 }).addTo(map);
-      map.fitBounds(primaryPolyline.getBounds(), { padding: [40, 40] });
-
-      const m1 = L.marker(start).addTo(map).bindPopup('Start: ' + escapeHtml(preset.origin.title));
-      const m2 = L.marker(end).addTo(map).bindPopup('End: ' + escapeHtml(preset.dest.title));
-      markers.push(m1, m2);
-    }
-
     // Protect Tab: Client-Side SHA-256 Hashing of File Bytes via WebCrypto
     let lastUploadedHash = null;
     let lastUploadedFileName = null;
@@ -1494,30 +1492,8 @@ export function getDashboardHtml(): string {
       }
     }
 
-    const enteredIncidents = [
-      {
-        id: 'inc_1',
-        timestamp: '2026-11-13T21:15:00Z',
-        platform: 'INSTAGRAM',
-        senderHandle: '@stalker_user',
-        messageContent: 'I saw you leaving the library alone',
-        wasBlockedPrior: true,
-        digestHex: '4a8b7c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b',
-        fileName: 'chat_screenshot_1.png',
-        digestType: 'FILE_CONTENT_SHA256'
-      },
-      {
-        id: 'inc_2',
-        timestamp: '2026-11-14T01:20:00Z',
-        platform: 'WHATSAPP',
-        senderHandle: '+91-98765-XXXXX',
-        messageContent: 'Repeated midnight missed calls',
-        wasBlockedPrior: true,
-        digestHex: 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6',
-        fileName: 'call_log_screenshot.png',
-        digestType: 'FILE_CONTENT_SHA256'
-      }
-    ];
+    // Truly empty session array; no fabricated mock records
+    const enteredIncidents = [];
 
     function copyHash(hash) {
       if (!hash) return;
@@ -1652,10 +1628,12 @@ export function getDashboardHtml(): string {
           resultArea.innerHTML = html;
           showToast('Pattern analysis identified behavioral indicators.', 'info');
         } else {
-          resultArea.innerHTML = '<div style="color: var(--text); font-size: 13px;">Pattern Analysis: Multi-platform contact detected post-blocking (Severity: HIGH).</div>';
+          resultArea.innerHTML = '<div style="color: var(--danger); font-size: 13px;">Pattern analysis unavailable: gateway returned error status ' + escapeHtml(res.status) + '.</div>';
+          showToast('Pattern analysis request failed.', 'error');
         }
       } catch {
-        resultArea.innerHTML = '<div style="color: var(--text); font-size: 13px;">Pattern Analysis: Temporal clustering across logged records identified.</div>';
+        resultArea.innerHTML = '<div style="color: var(--danger); font-size: 13px;">Pattern analysis unavailable: failed to reach analytics gateway.</div>';
+        showToast('Pattern analysis service offline.', 'error');
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1695,9 +1673,13 @@ export function getDashboardHtml(): string {
             resultArea.innerHTML = html;
             showToast('Privacy audit detected potential information leaks.', 'info');
           }
+        } else {
+          resultArea.innerHTML = '<div style="color: var(--danger); font-size: 12px;">Audit unavailable: gateway error ' + escapeHtml(res.status) + '.</div>';
+          showToast('Exposure audit request failed.', 'error');
         }
       } catch {
-        resultArea.innerHTML = '<div style="color: var(--text-secondary); font-size: 12px;">Audit completed. Ensure hostel room numbers and routine schedules are omitted.</div>';
+        resultArea.innerHTML = '<div style="color: var(--danger); font-size: 12px;">Exposure audit service unavailable: failed to reach gateway.</div>';
+        showToast('Exposure audit service offline.', 'error');
       } finally {
         if (btn) btn.disabled = false;
       }

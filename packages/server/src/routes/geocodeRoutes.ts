@@ -118,7 +118,8 @@ export async function registerGeocodeRoutes(fastify: FastifyInstance) {
       reply: FastifyReply
     ) => {
       let query = (request.query.q || '').trim();
-      const limit = Math.min(10, Math.max(1, parseInt(request.query.limit || '5', 10)));
+      const parsedLimit = parseInt(request.query.limit || '5', 10);
+      const limit = Number.isFinite(parsedLimit) ? Math.min(10, Math.max(1, parsedLimit)) : 5;
       const userLat = request.query.lat ? parseFloat(request.query.lat) : NaN;
       const userLon = request.query.lon ? parseFloat(request.query.lon) : NaN;
       const hasUserLocation = Number.isFinite(userLat) && Number.isFinite(userLon);

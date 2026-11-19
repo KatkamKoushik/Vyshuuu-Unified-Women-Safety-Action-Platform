@@ -57,6 +57,24 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
 
       const loadCredential = async () => {
         try {
+          // Check persisted lockout state across component remounts
+          let lockoutUntilStr: string | null = null;
+          try {
+            lockoutUntilStr = await SecureStore.getItemAsync('vault_lockout_until');
+          } catch {
+            lockoutUntilStr = null;
+          }
+          if (!lockoutUntilStr) {
+            lockoutUntilStr = await getSecuritySetting('vault_lockout_until', '');
+          }
+          if (lockoutUntilStr) {
+            const until = parseInt(lockoutUntilStr, 10);
+            const remaining = Math.ceil((until - Date.now()) / 1000);
+            if (remaining > 0) {
+              setLockoutTimer(remaining);
+            }
+          }
+
           // 1. Try platform-backed hardware keystore (SecureStore)
           let hash: string | null = null;
           try {
@@ -65,7 +83,7 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
             hash = null;
           }
 
-          // 2. Fall back to on-device SQLite security settings
+          // 2. Fall back to on-device SQLite security settings only if SecureStore returned null
           if (!hash) {
             const rawVal = await getSecuritySetting('vault_pin_hash', '');
             hash = rawVal ? rawVal.trim() : null;
@@ -119,13 +137,17 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
               const newHash = hashPin(nextPin);
               try {
                 // Save to SecureStore hardware-backed keystore
+                let savedToSecureStore = false;
                 try {
                   await SecureStore.setItemAsync('vault_pin_hash', newHash);
+                  savedToSecureStore = true;
                 } catch {
-                  // Continue to SQLite fallback
+                  savedToSecureStore = false;
                 }
-                // Save to SQLite security settings
-                await setSecuritySetting('vault_pin_hash', newHash);
+                // Only fall back to SQLite if SecureStore hardware keystore is unavailable
+                if (!savedToSecureStore) {
+                  await setSecuritySetting('vault_pin_hash', newHash);
+                }
 
                 Alert.alert(
                   'Vault Enrolled & Secured',
@@ -151,6 +173,11 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
           if (storedPinHash && attemptHash === storedPinHash) {
             setPin('');
             setFailedAttempts(0);
+            try {
+              await SecureStore.deleteItemAsync('vault_lockout_until');
+            } catch {
+              await setSecuritySetting('vault_lockout_until', '');
+            }
             onSuccess();
           } else {
             const nextFail = failedAttempts + 1;
@@ -158,7 +185,13 @@ export const VaultSecurityModal: React.FC<VaultSecurityModalProps> = ({
             setPin('');
 
             if (nextFail >= MAX_ATTEMPTS) {
+              const lockoutUntil = Date.now() + LOCKOUT_SECONDS * 1000;
               setLockoutTimer(LOCKOUT_SECONDS);
+              try {
+                await SecureStore.setItemAsync('vault_lockout_until', String(lockoutUntil));
+              } catch {
+                await setSecuritySetting('vault_lockout_until', String(lockoutUntil));
+              }
               Alert.alert(
                 'Access Locked',
                 `Too many failed attempts. Vault keypad locked for ${LOCKOUT_SECONDS} seconds for brute-force defense.`

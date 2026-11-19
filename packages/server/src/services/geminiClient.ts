@@ -85,6 +85,7 @@ export async function dynamicGrievanceAnalysis(
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
           systemInstruction: {
             parts: [{ text: GEMINI_SYSTEM_GUARDRAIL }],
@@ -146,11 +147,26 @@ export async function dynamicGrievanceAnalysis(
     }
 
     const parsed = JSON.parse(candidateText);
+    const validCategories = ['HOSTEL_SANITATION', 'MESS_FOOD', 'CYBERSTALKING', 'SEXUAL_HARASSMENT', 'RAGGING', 'GENERAL'];
+    const validAuthorities = ['UGC_SAMADHAAN', 'FSSAI_FOSCOS', 'CYBERCRIME_INDIA', 'COLLEGE_ICC', 'ANTI_RAGGING'];
+    const category = validCategories.includes(parsed.category) ? parsed.category : fallbackCat;
+    const matchedAuthorityCode = validAuthorities.includes(parsed.matchedAuthorityCode) ? parsed.matchedAuthorityCode : 'UGC_SAMADHAAN';
+    const reason = typeof parsed.reason === 'string' && parsed.reason.trim() ? parsed.reason.trim() : 'Statutory authority matched via intelligent grievance triage.';
+    const rawQuestions = Array.isArray(parsed.clarifyingQuestions) ? parsed.clarifyingQuestions : [];
+    const clarifyingQuestions = rawQuestions
+      .filter((q: any) => q && typeof q.id === 'string' && typeof q.question === 'string')
+      .slice(0, 3)
+      .map((q: any) => ({
+        id: String(q.id),
+        question: String(q.question),
+        purpose: typeof q.purpose === 'string' ? q.purpose : '',
+      }));
+
     return {
-      category: parsed.category || 'HOSTEL_SANITATION',
-      matchedAuthorityCode: parsed.matchedAuthorityCode || 'UGC_SAMADHAAN',
-      reason: parsed.reason || 'Statutory authority matched via intelligent grievance triage.',
-      clarifyingQuestions: parsed.clarifyingQuestions?.slice(0, 3) || [],
+      category,
+      matchedAuthorityCode,
+      reason,
+      clarifyingQuestions,
       isAiGenerated: true,
     };
   } catch {
@@ -204,6 +220,7 @@ export async function dynamicExposureAudit(
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
           systemInstruction: {
             parts: [{ text: GEMINI_SYSTEM_GUARDRAIL }],
@@ -259,10 +276,23 @@ export async function dynamicExposureAudit(
     }
 
     const parsed = JSON.parse(candidateText);
+    const validRisks = ['HIGH', 'MEDIUM', 'LOW', 'SAFE'];
+    const overallRisk = validRisks.includes(parsed.overallRisk) ? parsed.overallRisk : 'MEDIUM';
+    const adviceSummary = typeof parsed.adviceSummary === 'string' && parsed.adviceSummary.trim() ? parsed.adviceSummary.trim() : 'Completed exposure audit.';
+    const rawFindings = Array.isArray(parsed.findings) ? parsed.findings : [];
+    const findings = rawFindings
+      .filter((f: any) => f && typeof f.category === 'string')
+      .map((f: any) => ({
+        category: String(f.category),
+        snippet: String(f.snippet || ''),
+        risk: String(f.risk || 'MEDIUM'),
+        remediation: String(f.remediation || ''),
+      }));
+
     return {
-      overallRisk: parsed.overallRisk || 'SAFE',
-      adviceSummary: parsed.adviceSummary || 'Completed exposure audit.',
-      findings: parsed.findings || [],
+      overallRisk,
+      adviceSummary,
+      findings,
       isAiGenerated: true,
     };
   } catch {
@@ -334,6 +364,7 @@ export async function dynamicChatAssistant(
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
           body: JSON.stringify({
             systemInstruction: {
               parts: [

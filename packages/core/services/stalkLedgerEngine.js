@@ -30,6 +30,9 @@ export function calculateIncidentHash(incident) {
     senderHandle: incident.senderHandle || '',
     messageContent: incident.messageContent || '',
     threatKeywords: incident.threatKeywords || [],
+    wasBlockedPrior: Boolean(incident.wasBlockedPrior),
+    evidenceReference: incident.evidenceReference || null,
+    digestType: incident.digestType || null,
   });
   return hashSha256(payloadString);
 }
@@ -112,12 +115,17 @@ export function buildTemporalIncidentGraph(incidents = [], options = {}) {
   // 2. Detect Cross-Platform Convergence
   // Multiple platforms used by same suspected individual or within short span
   if (platforms.size >= 2 && sorted.length >= 2) {
+    const hasCommonSender = senders.size === 1;
+    const hasEvasion = sorted.some((inc) => inc.wasBlockedPrior);
+    const severity = hasCommonSender || hasEvasion ? 'HIGH' : 'MEDIUM';
     patterns.push({
       patternId: 'pat_cross_platform',
       type: 'CROSS_PLATFORM_CONVERGENCE',
-      severity: 'HIGH',
-      summary: 'Multi-channel contact spanning multiple independent digital platforms.',
-      factualBasis: `Incidents recorded across ${platforms.size} distinct platforms: ${Array.from(platforms).join(', ')}.`,
+      severity,
+      summary: hasCommonSender
+        ? 'Identified single sender contacting across multiple distinct digital platforms.'
+        : 'Multi-channel contact spanning multiple platforms (attribution unverified without corroborating handle link).',
+      factualBasis: `Incidents recorded across ${platforms.size} distinct platforms: ${Array.from(platforms).join(', ')} (${senders.size} distinct handle(s)).`,
       relatedIncidentIds: sorted.map((inc) => inc.id),
     });
   }

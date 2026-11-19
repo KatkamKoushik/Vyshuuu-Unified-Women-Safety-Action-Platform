@@ -28,7 +28,7 @@ export interface UseWalkingRouteReturn {
   isLoadingRoutes: boolean;
   statusMessage: string | null;
   userLocation: { latitude: number; longitude: number } | null;
-  computeRoutes: (options?: { timeoutMs?: number }) => Promise<void>;
+  computeRoutes: (options?: { timeoutMs?: number; overrideOrigin?: LocationPoint }) => Promise<void>;
   handleUseGps: () => Promise<void>;
   handleSelectSavedJourney: (saved: SavedJourney) => void;
 }
@@ -52,18 +52,12 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
           setUserLocation({ latitude: userPt.latitude, longitude: userPt.longitude });
           setOrigin(userPt);
 
-          // If current default destination is too far (> 5 km) from device GPS, set a realistic nearby walk
+          // If current default destination is too far (> 5 km) from device GPS, require explicit user selection
           setDestination((prevDest) => {
             if (!prevDest) return prevDest;
             const dist = calculateDistanceKm(userPt.latitude, userPt.longitude, prevDest.latitude, prevDest.longitude);
             if (dist > 5) {
-              return {
-                title: 'Nearby Park & Promenade',
-                subtitle: '850m away • Local pedestrian walking route',
-                latitude: Number((userPt.latitude + 0.0055).toFixed(5)),
-                longitude: Number((userPt.longitude + 0.0050).toFixed(5)),
-                distanceKm: 0.85,
-              };
+              return null;
             }
             return prevDest;
           });
@@ -113,18 +107,19 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
 
   // Request pedestrian routes whenever origin & destination are set
   const computeRoutes = useCallback(
-    async (options?: { timeoutMs?: number }) => {
+    async (options?: { timeoutMs?: number; overrideOrigin?: LocationPoint }) => {
       const seq = ++routeRequestSeq.current;
+      const effectiveOrigin = options?.overrideOrigin || origin;
 
-      if (!origin || !destination) {
+      if (!effectiveOrigin || !destination) {
         setStatusMessage('Please select both a start point and destination.');
         return;
       }
 
       // Pedestrian sanity validation: prevent calculating 100+ km impossible walks
       const distanceKm = calculateDistanceKm(
-        origin.latitude,
-        origin.longitude,
+        effectiveOrigin.latitude,
+        effectiveOrigin.longitude,
         destination.latitude,
         destination.longitude
       );
@@ -133,7 +128,7 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
         setIsLoadingRoutes(false);
         setRoutingResult(null);
         setStatusMessage(
-          `Destination is ${distanceKm.toFixed(0)} km away. Walking companion is designed for short pedestrian trips under 5 km. Please select a nearby destination or use public transit.`
+          `Destination is ${distanceKm.toFixed(0)} km away. Walking companion is designed for short pedestrian trips under 5 km (maximum route distance 15 km). Please select a nearby destination or use public transit.`
         );
         return;
       }
@@ -143,7 +138,7 @@ export function useWalkingRoute(): UseWalkingRouteReturn {
       setRoutingResult(null);
 
       const result = await activeRoutingProvider.getWalkingRoutes(
-        { latitude: origin.latitude, longitude: origin.longitude },
+        { latitude: effectiveOrigin.latitude, longitude: effectiveOrigin.longitude },
         { latitude: destination.latitude, longitude: destination.longitude },
         options
       );

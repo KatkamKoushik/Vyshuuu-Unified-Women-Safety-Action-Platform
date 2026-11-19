@@ -128,7 +128,7 @@ function MainAppContent() {
       longitude: lon,
     };
     setOrigin(currentPoint);
-    await computeRoutes();
+    await computeRoutes({ overrideOrigin: currentPoint });
   };
 
   return (

@@ -142,6 +142,9 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
         platform: newPlatform,
         senderHandle: newSender.trim(),
         messageContent: newMessage.trim(),
+        wasBlockedPrior: newWasBlocked,
+        evidenceReference: evidenceString || undefined,
+        digestType: attachedFile ? 'FILE_CONTENT_SHA256' : undefined,
       });
 
       const record: SavedIncident = {
@@ -244,11 +247,15 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
       hash: inc.hash,
     }));
 
+    const localTzOffset = -new Date().getTimezoneOffset();
     try {
       const res = await fetch(`${GATEWAY_BASE_URL}/api/v1/protect/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ incidents: formattedIncidents }),
+        body: JSON.stringify({
+          incidents: formattedIncidents,
+          options: { timezoneOffsetMinutes: localTzOffset },
+        }),
       });
 
       if (res.ok) {
@@ -256,12 +263,12 @@ export const ProtectScreen: React.FC<ProtectScreenProps> = ({ initialText }) => 
         setAnalysisResult(data.summary);
       } else {
         // Fallback directly to deterministic core analytical engine
-        const graph = buildTemporalIncidentGraph(formattedIncidents);
+        const graph = buildTemporalIncidentGraph(formattedIncidents, { timezoneOffsetMinutes: localTzOffset });
         setAnalysisResult(graph);
       }
     } catch {
       // Offline fallback: execute real deterministic core graph construction on-device
-      const graph = buildTemporalIncidentGraph(formattedIncidents);
+      const graph = buildTemporalIncidentGraph(formattedIncidents, { timezoneOffsetMinutes: localTzOffset });
       setAnalysisResult(graph);
     } finally {
       setIsAnalyzing(false);

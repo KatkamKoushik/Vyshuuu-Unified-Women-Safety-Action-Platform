@@ -6,8 +6,8 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/KatkamKoushik/vyshuuu-Unified-Women-Safety-Action-Platform/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" /></a>
-  <a href="https://nodejs.org/api/test.html"><img src="https://img.shields.io/badge/Tests-281%2F281%20Passing-success?style=for-the-badge&logo=node.js&logoColor=white" alt="Test Status" /></a>
+  <a href="https://github.com/KatkamKoushik/ResQ/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" /></a>
+  <a href="https://nodejs.org/api/test.html"><img src="https://img.shields.io/badge/Tests-288%2F288%20Passing-success?style=for-the-badge&logo=node.js&logoColor=white" alt="Test Status" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://fastify.dev/"><img src="https://img.shields.io/badge/Fastify-5.12-black?style=for-the-badge&logo=fastify&logoColor=white" alt="Fastify" /></a>
   <a href="https://reactnative.dev/"><img src="https://img.shields.io/badge/React%20Native-0.88.1-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native" /></a>
@@ -253,7 +253,7 @@ d:\vyshu project\
 
 ### Installation
 ```bash
-git clone https://github.com/KatkamKoushik/vyshuuu-Unified-Women-Safety-Action-Platform.git resq
+git clone https://github.com/KatkamKoushik/ResQ.git resq
 cd resq
 npm install
 ```
@@ -271,7 +271,7 @@ npm run --workspace=packages/mobile start
 
 ### Running the Verification Suite
 ```bash
-# Run all 279 unit and integration tests across 53 suites
+# Run all 288 unit and integration tests across 54 suites
 npm test
 
 # Run TypeScript typechecks across all 3 workspaces
@@ -313,7 +313,22 @@ npm run lint
 
 ---
 
-## 11. Attribution & License
+## 11. Core Development Team
+
+### Koushik Katkam
+* **Email:** [koushikkatkam@gmail.com](mailto:koushikkatkam@gmail.com)
+* **GitHub:** [KatkamKoushik](https://github.com/KatkamKoushik)
+* **LinkedIn:** [koushik-katkam](https://linkedin.com/in/koushik-katkam)
+* **Instagram:** [koushik_katkam](https://instagram.com/koushik_katkam)
+
+### Vyshnavi Nagavelli
+* **Email:** [nagavellivyshnavi3@gmail.com](mailto:nagavellivyshnavi3@gmail.com)
+* **GitHub:** [nagavellivyshnavi](https://github.com/nagavellivyshnavi)
+* **LinkedIn:** [vyshnavi-nagavelli-135465355](https://linkedin.com/in/vyshnavi-nagavelli-135465355/)
+
+---
+
+## 12. Attribution & License
 
 This project is licensed under the [MIT License](LICENSE).
 OpenStreetMap data is copyright OpenStreetMap contributors and licensed under the Open Database License (ODbL). Street-level photos are licensed under Creative Commons Attribution-ShareAlike 4.0 International (CC-BY-SA 4.0). Daylight calculations derived from NOAA solar position formulas.

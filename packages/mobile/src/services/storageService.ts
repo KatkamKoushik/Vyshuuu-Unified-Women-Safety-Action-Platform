@@ -75,24 +75,31 @@ export interface EmergencyContact {
 }
 
 let dbInstance: ISQLiteDatabase | null = null;
+let dbInitPromise: Promise<ISQLiteDatabase> | null = null;
 
 /**
  * Injects or overrides the active SQLite database instance (used for testing or custom paths).
  */
 export function setDbInstance(db: ISQLiteDatabase | null): void {
   dbInstance = db;
+  dbInitPromise = db ? Promise.resolve(db) : null;
 }
 
 /**
  * Initializes and returns the local SQLite database instance
  */
 export async function getDb(): Promise<ISQLiteDatabase> {
-  if (!dbInstance) {
-    const SQLite = await import('expo-sqlite');
-    dbInstance = await SQLite.openDatabaseAsync('walking_companion.db');
-    await initSchema(dbInstance);
+  if (dbInstance) return dbInstance;
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      const SQLite = await import('expo-sqlite');
+      const db = await SQLite.openDatabaseAsync('walking_companion.db');
+      await initSchema(db);
+      dbInstance = db;
+      return db;
+    })();
   }
-  return dbInstance;
+  return dbInitPromise;
 }
 
 /**
@@ -284,8 +291,11 @@ export async function getRecentSearches(limit = 5): Promise<RecentSearch[]> {
 }
 
 /**
- * 1-Tap Hard Wipe: permanently deletes all local journey records,
- * search history, incident records, and grievance cases, then runs SQLite VACUUM.
+ * 1-Tap Hard Wipe: deletes all local journey records,
+ * search history, incident records, grievance cases, emergency contacts,
+ * and clears SecureStore credentials.
+ * Note: While SQLite VACUUM reclaims deleted pages, OS flash storage may retain
+ * residual page artifacts; for complete forensic erasure, device-level factory wipe is required.
  */
 export async function hardWipeAllData(): Promise<void> {
   const db = await getDb();
@@ -298,20 +308,33 @@ export async function hardWipeAllData(): Promise<void> {
     DELETE FROM app_security_settings;
     VACUUM;
   `);
+
+  try {
+    const SecureStore = await import('expo-secure-store');
+    await SecureStore.deleteItemAsync('vault_pin_hash');
+    await SecureStore.deleteItemAsync('vault_lockout_until');
+  } catch {
+    // Non-fatal if SecureStore is not supported or key absent
+  }
 }
 
 /**
- * Saves an incident evidence record locally with cryptographic hash
+ * Saves an incident evidence record locally with cryptographic hash.
+ * Validates content size before save to prevent silent post-hash truncation.
  */
 export async function saveIncident(incident: Omit<SavedIncident, 'created_at'>): Promise<void> {
   const db = await getDb();
   const createdAt = new Date().toISOString();
 
+  if (incident.message_content && incident.message_content.length > 4096) {
+    throw new Error('Incident message content exceeds maximum allowable length of 4096 characters');
+  }
+
   const safeId = String(incident.id || '').slice(0, 128);
   const safeTimestamp = String(incident.timestamp || createdAt).slice(0, 64);
   const safePlatform = String(incident.platform || 'UNKNOWN').slice(0, 64);
   const safeSender = String(incident.sender_handle || 'ANONYMOUS').slice(0, 128);
-  const safeContent = String(incident.message_content || '').slice(0, 2048);
+  const safeContent = String(incident.message_content || '');
   const safeWasBlocked = incident.was_blocked_prior === 1 ? 1 : 0;
   const safeEvidenceRef = String(incident.evidence_ref || '').slice(0, 256);
   const safeHash = String(incident.hash || '').slice(0, 128);

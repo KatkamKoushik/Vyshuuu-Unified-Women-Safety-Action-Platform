@@ -9,6 +9,7 @@ export interface IncidentRecord {
   messageContent: string;
   wasBlockedPrior?: boolean;
   evidenceReference?: string;
+  digestType?: string;
   hash?: string;
 }
 
